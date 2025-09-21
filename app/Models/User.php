@@ -50,6 +50,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Restaurant::class);
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
     public function isAdmin()
     {
         return $this->role === 'admin';

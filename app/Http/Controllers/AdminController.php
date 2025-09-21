@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Restaurant;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
@@ -31,7 +32,12 @@ class AdminController extends Controller
                   ->orWhereHas('restaurants');
         })->withCount('restaurants')->get();
 
-        return view('admin.index', compact('restaurants', 'users'));
+        // Get unpaid or expired subscriptions
+        $unpaidSubscriptions = Subscription::where(function($query) {
+            $query->whereNull('paid_at')->orWhere('expires_at', '<', now());
+        })->with('user')->get();
+
+        return view('admin.index', compact('restaurants', 'users', 'unpaidSubscriptions'));
     }
 
     public function createRestaurant()
@@ -56,7 +62,8 @@ class AdminController extends Controller
             'user_id' => 'required_if:owner_method,existing|nullable|exists:users,id',
             'password' => 'required_if:owner_method,new|nullable|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
-            'logo' => 'nullable|image|max:2048'
+            'logo' => 'nullable|image|max:2048',
+            'subscription_amount' => 'nullable|numeric|min:0'
         ]);
 
         $userId = null;
@@ -89,6 +96,12 @@ class AdminController extends Controller
                 $message = __('messages.restaurant_created_new_user', ['name' => $request->name, 'email' => $request->owner_email]);
             }
         }
+
+        // Create subscription if not exists
+        \App\Models\Subscription::firstOrCreate(
+            ['user_id' => $userId],
+            ['amount' => $request->subscription_amount ?: 100.00]
+        );
 
         $restaurant = new Restaurant([
             'name' => $request->name,
@@ -165,6 +178,33 @@ class AdminController extends Controller
             
             return redirect()->route('admin.index')->with('error', 'Failed to delete restaurant. Please check the logs for more details.');
         }
+    }
+
+    public function editSubscription(Subscription $subscription)
+    {
+        return view('admin.edit-subscription', compact('subscription'));
+    }
+
+    public function updateSubscription(Request $request, Subscription $subscription)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        $subscription->update([
+            'amount' => $request->amount,
+        ]);
+
+        return redirect()->route('admin.index')->with('success', 'Subscription cost updated successfully.');
+    }
+
+    public function markPaid(Subscription $subscription)
+    {
+        $subscription->paid_at = now();
+        $subscription->expires_at = now()->addYear();
+        $subscription->save();
+
+        return redirect()->back()->with('success', 'Subscription marked as paid.');
     }
 
     /**

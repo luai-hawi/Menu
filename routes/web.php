@@ -61,6 +61,11 @@ Route::middleware('admin')->prefix('admin')->group(function () {
     // User management routes
     Route::get('/user/{user}/edit', [AdminController::class, 'editUser'])->name('admin.user.edit');
     Route::put('/user/{user}', [AdminController::class, 'updateUser'])->name('admin.user.update');
+
+    // Subscription management routes
+    Route::get('/subscription/{subscription}/edit', [AdminController::class, 'editSubscription'])->name('admin.subscription.edit');
+    Route::put('/subscription/{subscription}', [AdminController::class, 'updateSubscription'])->name('admin.subscription.update');
+    Route::post('/subscription/{subscription}/mark-paid', [AdminController::class, 'markPaid'])->name('admin.subscription.mark-paid');
 });
 
 // Public menu routes (MUST come last to avoid conflicts)

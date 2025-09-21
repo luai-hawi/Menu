@@ -195,6 +195,25 @@
                         </div>
 
                         <div class="form-field">
+                            <label for="subscription_amount" class="form-label">
+                                <i class="fas fa-dollar-sign mr-2"></i>
+                                Subscription Cost ($)
+                            </label>
+                            <input type="number"
+                                   id="subscription_amount"
+                                   name="subscription_amount"
+                                   value="{{ old('subscription_amount', 100) }}"
+                                   placeholder="100"
+                                   class="form-input"
+                                   step="0.01"
+                                   min="0">
+                            <div class="form-help">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Yearly subscription cost for this restaurant owner
+                            </div>
+                        </div>
+
+                        <div class="form-field">
                             <label for="logo" class="form-label">
                                 <i class="fas fa-image mr-2"></i>
                                 {{ __('messages.restaurant_logo') }}

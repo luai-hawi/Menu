@@ -238,6 +238,69 @@
                     </div>
                 @endif
             </div>
+
+            <!-- Unpaid Subscriptions -->
+            @if($unpaidSubscriptions->isNotEmpty())
+            <div class="card mt-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-white">Unpaid Subscriptions</h3>
+                        <p class="text-gray-400 mt-1">Restaurant owners who need to pay their subscription</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-600">
+                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Owner</th>
+                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Amount</th>
+                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Status</th>
+                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($unpaidSubscriptions as $subscription)
+                                <tr class="table-row">
+                                    <td class="py-4 px-4">
+                                        <div class="text-white font-medium">{{ $subscription->user->name }}</div>
+                                        <div class="text-gray-400 text-sm">{{ $subscription->user->email }}</div>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <div class="text-white font-medium">${{ number_format($subscription->amount, 2) }}</div>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <span class="status-badge status-inactive">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                                            {{ $subscription->paid_at ? 'Expired' : 'Unpaid' }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <div class="flex items-center space-x-2">
+                                            <a href="{{ route('admin.subscription.edit', $subscription) }}"
+                                               class="action-btn action-edit"
+                                               title="Edit Cost">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </a>
+                                            <form action="{{ route('admin.subscription.mark-paid', $subscription) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="action-btn action-enable" title="Mark as Paid">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 
