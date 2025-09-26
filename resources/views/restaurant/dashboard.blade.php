@@ -71,6 +71,12 @@
                         <div class="mt-3">
                             <p class="text-gray-300 text-sm">{{ __('messages.current_logo') }}:</p>
                             <img src="{{ asset('storage/' . $restaurant->logo) }}" alt="Current logo" class="mt-2 max-w-xs h-20 object-contain rounded-lg border border-gray-600 bg-white p-2">
+                            <div class="mt-2">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="remove_logo" value="1" class="rounded border-gray-600 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-300">{{ __('messages.remove_logo') }}</span>
+                                </label>
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -201,6 +207,12 @@
                             <div class="mt-3">
                                 <p class="text-gray-300 text-sm">{{ __('messages.current_background') }}:</p>
                                 <img src="{{ asset('storage/' . $restaurant->background_image) }}" alt="Current background" class="mt-2 max-w-xs h-32 object-cover rounded-lg border border-gray-600">
+                                <div class="mt-2">
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" name="remove_background" value="1" class="rounded border-gray-600 text-blue-600 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-300">{{ __('messages.remove_background') }}</span>
+                                    </label>
+                                </div>
                             </div>
                         @endif
                     </div>

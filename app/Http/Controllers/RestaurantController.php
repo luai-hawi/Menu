@@ -264,7 +264,8 @@ class RestaurantController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_logo' => 'nullable|in:1'
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
@@ -275,7 +276,7 @@ class RestaurantController extends Controller
                 'description' => $request->description,
             ];
 
-            // Handle logo upload
+            // Handle logo upload/removal
             if ($request->hasFile('logo')) {
                 // Delete old logo if exists
                 if ($restaurant->logo) {
@@ -289,6 +290,12 @@ class RestaurantController extends Controller
                     400,
                     85
                 );
+            } elseif ($request->has('remove_logo') && $request->remove_logo == '1') {
+                // Remove logo if requested
+                if ($restaurant->logo) {
+                    $this->imageService->deleteImage($restaurant->logo);
+                }
+                $updateData['logo'] = null;
             }
 
             // Check if name changed and regenerate slug if needed
@@ -320,6 +327,7 @@ class RestaurantController extends Controller
 {
     $request->validate([
         'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+        'remove_background' => 'nullable|in:1',
         'facebook_url' => 'nullable|url',
         'instagram_url' => 'nullable|url',
         'snapchat_url' => 'nullable|url',
@@ -366,7 +374,7 @@ class RestaurantController extends Controller
             ]
         ];
 
-        // Handle background image upload
+        // Handle background image upload/removal
         if ($request->hasFile('background_image')) {
             // Delete old background image if exists
             if ($restaurant->background_image) {
@@ -380,6 +388,12 @@ class RestaurantController extends Controller
                 1920,
                 80
             );
+        } elseif ($request->has('remove_background') && $request->remove_background == '1') {
+            // Remove background image if requested
+            if ($restaurant->background_image) {
+                $this->imageService->deleteImage($restaurant->background_image);
+            }
+            $updateData['background_image'] = null;
         }
 
         $restaurant->update($updateData);

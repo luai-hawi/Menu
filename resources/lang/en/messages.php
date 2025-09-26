@@ -94,6 +94,9 @@ return [
 'restaurant_description_help' => 'This description will appear on your public menu',
 'logo_upload_help' => 'Upload a new logo for your restaurant (JPEG, PNG, GIF - Max 2MB)',
 'current_logo' => 'Current Logo',
+'remove_logo' => 'Remove current logo',
+'current_background' => 'Current Background Image',
+'remove_background' => 'Remove current background image',
 'save_profile' => 'Save Profile',
 'save_settings' => 'Save Settings',
 

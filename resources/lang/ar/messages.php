@@ -43,6 +43,9 @@ return [
 'restaurant_description_help' => 'سيظهر هذا الوصف في قائمتك العامة',
 'logo_upload_help' => 'ارفع شعاراً جديداً لمطعمك (JPEG، PNG، GIF - الحد الأقصى 2 ميجابايت)',
 'current_logo' => 'الشعار الحالي',
+'remove_logo' => 'إزالة الشعار الحالي',
+'current_background' => 'صورة الخلفية الحالية',
+'remove_background' => 'إزالة صورة الخلفية الحالية',
 'save_profile' => 'حفظ الملف الشخصي',
 'save_settings' => 'حفظ الإعدادات',
 
