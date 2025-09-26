@@ -42,6 +42,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/category/{category}', [RestaurantController::class, 'deleteCategory'])->name('category.delete');
     Route::post('/restaurant/whatsapp/toggle', [RestaurantController::class, 'toggleWhatsApp'])->name('restaurant.whatsapp.toggle');
     Route::post('/restaurant/whatsapp/update', [RestaurantController::class, 'updateWhatsApp'])->name('restaurant.whatsapp.update');
+    Route::post('/restaurant/profile', [RestaurantController::class, 'updateProfile'])->name('restaurant.update.profile')->middleware('auth');
+    Route::post('/restaurant/settings', [RestaurantController::class, 'updateSettings'])->name('restaurant.update.settings')->middleware('auth');
 });
 
 // Admin-only restaurant creation routes

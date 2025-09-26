@@ -12,6 +12,61 @@ return [
     'cancel' => 'إلغاء',
     'Delete Category' => 'حذف الفئة',
     'not_provided' => 'غير محدد',
+    // Social Media & Theme Settings
+'social_media_theme' => 'وسائل التواصل الاجتماعي وإعدادات التصميم',
+'social_media_links' => 'روابط وسائل التواصل الاجتماعي',
+'theme_colors' => 'ألوان التصميم',
+'primary_color' => 'اللون الأساسي',
+'secondary_color' => 'اللون الثانوي',
+'accent_color' => 'لون التمييز',
+'text_color' => 'لون النص',
+'background_color' => 'لون الخلفية',
+'card_color' => 'لون البطاقات',
+'secondary_background' => 'الخلفية الثانوية',
+'tertiary_background' => 'الخلفية الثالثة',
+'secondary_text' => 'النص الثانوي',
+'muted_text' => 'النص الخافت',
+'input_background' => 'خلفية الحقول',
+'input_border' => 'حدود الحقول',
+'language_selector_bg' => 'خلفية محدد اللغة',
+'reset_theme_colors' => 'إعادة تعيين ألوان التصميم',
+'confirm_reset_theme_colors' => 'هل أنت متأكد من إعادة تعيين جميع ألوان التصميم إلى القيم الافتراضية؟',
+'restaurant_header' => 'رأس المطعم',
+'background_image' => 'صورة الخلفية',
+'background_image_optional' => 'صورة الخلفية (اختياري)',
+'background_image_help' => 'ارفع صورة خلفية لرأس مطعمك. الحجم الموصى به: 1920x1080px. سيتم تعتيم الصورة لتحسين وضوح النص.',
+'current_background' => 'صورة الخلفية الحالية',
+'save_background_image' => 'حفظ صورة الخلفية',
+'restaurant_profile' => 'ملف المطعم',
+'restaurant_name_help' => 'هذا هو الاسم الذي يظهر في قائمتك العامة',
+'restaurant_description_placeholder' => 'صف مطعمك، تخصصاته، أجواءه، إلخ.',
+'restaurant_description_help' => 'سيظهر هذا الوصف في قائمتك العامة',
+'logo_upload_help' => 'ارفع شعاراً جديداً لمطعمك (JPEG، PNG، GIF - الحد الأقصى 2 ميجابايت)',
+'current_logo' => 'الشعار الحالي',
+'save_profile' => 'حفظ الملف الشخصي',
+'save_settings' => 'حفظ الإعدادات',
+
+// Search and Navigation
+'search_menu' => 'البحث في قائمة الطعام...',
+'all_categories' => 'جميع الفئات',
+
+// Social Media Placeholders (if you want to show examples)
+'facebook_placeholder' => 'https://facebook.com/yourpage',
+'instagram_placeholder' => 'https://instagram.com/yourprofile',
+'snapchat_placeholder' => 'https://snapchat.com/add/username',
+'twitter_placeholder' => 'https://twitter.com/username',
+'tiktok_placeholder' => 'https://tiktok.com/@username',
+'whatsapp_business_placeholder' => 'https://wa.me/1234567890',
+
+// Success Messages
+'settings_updated_successfully' => 'تم تحديث الإعدادات بنجاح!',
+'social_links_updated' => 'تم تحديث روابط وسائل التواصل الاجتماعي بنجاح!',
+'theme_colors_updated' => 'تم تحديث ألوان التصميم بنجاح!',
+
+// Additional UI Labels
+'optional_field' => 'اختياري',
+'choose_colors' => 'اختر ألوان تصميم مطعمك',
+'social_media_help' => 'أضف روابط حساباتك على وسائل التواصل الاجتماعي للتواصل مع العملاء',
 
     // Dashboard
     'dashboard' => 'لوحة التحكم',

@@ -39,6 +39,115 @@
     </x-slot>
 
     @if($restaurant)
+        <!-- Restaurant Profile Settings -->
+        <div class="card mb-6 max-w-3xl mt-6 mx-auto">
+            <h3 class="text-xl font-semibold text-white mb-6">{{ __('messages.restaurant_profile') }}</h3>
+
+            <form action="{{ route('restaurant.update.profile') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                <!-- Restaurant Name -->
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.restaurant_name') }}</label>
+                    <input type="text" name="name" value="{{ $restaurant->name }}"
+                           class="form-input" required>
+                    <p class="text-gray-400 text-sm mt-1">{{ __('messages.restaurant_name_help') }}</p>
+                </div>
+
+                <!-- Restaurant Description -->
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.restaurant_description') }}</label>
+                    <textarea name="description" rows="4" class="form-input"
+                              placeholder="{{ __('messages.restaurant_description_placeholder') }}">{{ $restaurant->description }}</textarea>
+                    <p class="text-gray-400 text-sm mt-1">{{ __('messages.restaurant_description_help') }}</p>
+                </div>
+
+                <!-- Restaurant Logo -->
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.restaurant_logo') }}</label>
+                    <input type="file" name="logo" accept="image/*" class="form-input">
+                    <p class="text-gray-400 text-sm mt-1">{{ __('messages.logo_upload_help') }}</p>
+                    @if($restaurant->logo)
+                        <div class="mt-3">
+                            <p class="text-gray-300 text-sm">{{ __('messages.current_logo') }}:</p>
+                            <img src="{{ asset('storage/' . $restaurant->logo) }}" alt="Current logo" class="mt-2 max-w-xs h-20 object-contain rounded-lg border border-gray-600 bg-white p-2">
+                        </div>
+                    @endif
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    {{ __('messages.save_profile') }}
+                </button>
+            </form>
+        </div>
+
+        <!-- Quick Actions - Moved to Top -->
+        <div class="responsive-grid mb-8">
+            <!-- Add Category Card -->
+            <div class="quick-action-card">
+                <div class="flex items-center mb-4">
+                    <div class="icon-wrapper icon-blue">
+                        <i class="fas fa-tags text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">{{ __('messages.add_new_category') }}</h3>
+                </div>
+                <form action="{{ route('category.store') }}" method="POST">
+                    @csrf
+                    <div class="form-group">
+                        <input type="text" name="name" placeholder="{{ __('messages.category_name_placeholder') }}"
+                               class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">
+                        <i class="fas fa-plus w-4 h-4"></i>
+                        {{ __('messages.add_category_btn') }}
+                    </button>
+                </form>
+            </div>
+
+            <!-- Add Menu Item Card -->
+            <div class="quick-action-card">
+                <div class="flex items-center mb-4">
+                    <div class="icon-wrapper icon-green">
+                        <i class="fas fa-plus text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">{{ __('messages.add_new_menu_item') }}</h3>
+                </div>
+                <form action="{{ route('item.store') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="space-y-4">
+                        <div class="form-group">
+                            <select name="category_id" class="form-input" required>
+                                <option value="">{{ __('messages.select_category') }}</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="name" placeholder="{{ __('messages.item_name') }}" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea name="description" placeholder="{{ __('messages.description_optional') }}"
+                                      class="form-input" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <input type="number" step="0.01" name="price" placeholder="{{ __('messages.price') }}"
+                                   class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">{{ __('messages.item_image_optional') }}</label>
+                            <input type="file" name="image" accept="image/*" class="form-input">
+                        </div>
+                        <button type="submit" class="btn btn-success w-full">
+                            <i class="fas fa-plus w-4 h-4"></i>
+                            {{ __('messages.add_menu_item_btn') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- WhatsApp Settings Card -->
         <div class="card mb-6 max-w-3xl mt-6 mx-auto">
             <div class="flex justify-between items-center mb-4">
@@ -73,6 +182,178 @@
                 </form>
             @endif
         </div>
+
+        <!-- Restaurant Header Settings -->
+        <div class="card mb-6 max-w-3xl mx-auto">
+            <h3 class="text-xl font-semibold text-white mb-6">{{ __('messages.restaurant_header') }}</h3>
+
+            <form action="{{ route('restaurant.update.settings') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                <!-- Background Image -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-white mb-4">{{ __('messages.background_image') }}</h4>
+                    <div class="form-group">
+                        <label class="form-label">{{ __('messages.background_image_optional') }}</label>
+                        <input type="file" name="background_image" accept="image/*" class="form-input">
+                        <p class="text-gray-400 text-sm mt-1">{{ __('messages.background_image_help') }}</p>
+                        @if($restaurant->background_image)
+                            <div class="mt-3">
+                                <p class="text-gray-300 text-sm">{{ __('messages.current_background') }}:</p>
+                                <img src="{{ asset('storage/' . $restaurant->background_image) }}" alt="Current background" class="mt-2 max-w-xs h-32 object-cover rounded-lg border border-gray-600">
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    {{ __('messages.save_background_image') }}
+                </button>
+            </form>
+        </div>
+
+        <!-- Social Media & Theme Settings -->
+<div class="card mb-6 max-w-3xl mx-auto">
+    <h3 class="text-xl font-semibold text-white mb-6">{{ __('messages.social_media_theme') }}</h3>
+
+    <form action="{{ route('restaurant.update.settings') }}" method="POST">
+        @csrf
+        
+        <!-- Social Media Links -->
+        <div class="mb-8">
+            <h4 class="text-lg font-semibold text-white mb-4">{{ __('messages.social_media_links') }}</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-facebook text-blue-500"></i> Facebook</label>
+                    <input type="url" name="facebook_url" value="{{ $restaurant->facebook_url }}" 
+                           placeholder="https://facebook.com/yourpage" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-instagram text-pink-500"></i> Instagram</label>
+                    <input type="url" name="instagram_url" value="{{ $restaurant->instagram_url }}" 
+                           placeholder="https://instagram.com/yourprofile" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-snapchat text-yellow-400"></i> Snapchat</label>
+                    <input type="url" name="snapchat_url" value="{{ $restaurant->snapchat_url }}" 
+                           placeholder="https://snapchat.com/add/username" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-twitter text-blue-400"></i> Twitter</label>
+                    <input type="url" name="twitter_url" value="{{ $restaurant->twitter_url }}" 
+                           placeholder="https://twitter.com/username" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-tiktok text-black"></i> TikTok</label>
+                    <input type="url" name="tiktok_url" value="{{ $restaurant->tiktok_url }}" 
+                           placeholder="https://tiktok.com/@username" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-whatsapp text-green-500"></i> WhatsApp Business</label>
+                    <input type="url" name="whatsapp_url" value="{{ $restaurant->whatsapp_url }}" 
+                           placeholder="https://wa.me/1234567890" class="form-input">
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme Colors -->
+        <div class="mb-8">
+            <h4 class="text-lg font-semibold text-white mb-4">{{ __('messages.theme_colors') }}</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.primary_color') }}</label>
+                    <input type="color" name="primary_color" 
+                           value="{{ $restaurant->theme_colors['primary'] ?? '#667eea' }}" 
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.secondary_color') }}</label>
+                    <input type="color" name="secondary_color" 
+                           value="{{ $restaurant->theme_colors['secondary'] ?? '#764ba2' }}" 
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.accent_color') }}</label>
+                    <input type="color" name="accent_color" 
+                           value="{{ $restaurant->theme_colors['accent'] ?? '#4facfe' }}" 
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.text_color') }}</label>
+                    <input type="color" name="text_color" 
+                           value="{{ $restaurant->theme_colors['text'] ?? '#ffffff' }}" 
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.background_color') }}</label>
+                    <input type="color" name="background_color" 
+                           value="{{ $restaurant->theme_colors['background'] ?? '#0a0e27' }}" 
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.card_color') }}</label>
+                    <input type="color" name="card_color"
+                           value="{{ $restaurant->theme_colors['card'] ?? '#252d56' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.secondary_background') }}</label>
+                    <input type="color" name="secondary_bg"
+                           value="{{ $restaurant->theme_colors['secondary_bg'] ?? '#141b3c' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.tertiary_background') }}</label>
+                    <input type="color" name="tertiary_bg"
+                           value="{{ $restaurant->theme_colors['tertiary_bg'] ?? '#1e2749' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.secondary_text') }}</label>
+                    <input type="color" name="secondary_text"
+                           value="{{ $restaurant->theme_colors['secondary_text'] ?? '#e2e8f0' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.muted_text') }}</label>
+                    <input type="color" name="muted_text"
+                           value="{{ $restaurant->theme_colors['muted_text'] ?? '#94a3b8' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.input_background') }}</label>
+                    <input type="color" name="input_bg"
+                           value="{{ $restaurant->theme_colors['input_bg'] ?? '#1e2749' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.input_border') }}</label>
+                    <input type="color" name="input_border"
+                           value="{{ $restaurant->theme_colors['input_border'] ?? '#334155' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('messages.language_selector_bg') }}</label>
+                    <input type="color" name="language_bg"
+                           value="{{ $restaurant->theme_colors['language_bg'] ?? '#1e2749' }}"
+                           class="w-full h-12 rounded-lg border border-gray-600">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex space-x-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i>
+                {{ __('messages.save_settings') }}
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetThemeColors()">
+                <i class="fas fa-undo mr-2"></i>
+                {{ __('messages.reset_theme_colors') }}
+            </button>
+        </div>
+    </form>
+</div>
 
         <!-- Rest of existing content... -->
     @endif
@@ -114,72 +395,6 @@
                     </a>
                 </div>
             @else
-                <!-- Quick Actions -->
-                <div class="responsive-grid mb-8">
-                    <!-- Add Category Card -->
-                    <div class="quick-action-card">
-                        <div class="flex items-center mb-4">
-                            <div class="icon-wrapper icon-blue">
-                                <i class="fas fa-tags text-white"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-white">{{ __('messages.add_new_category') }}</h3>
-                        </div>
-                        <form action="{{ route('category.store') }}" method="POST">
-                            @csrf
-                            <div class="form-group">
-                                <input type="text" name="name" placeholder="{{ __('messages.category_name_placeholder') }}"
-                                       class="form-input" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-full">
-                                <i class="fas fa-plus w-4 h-4"></i>
-                                {{ __('messages.add_category_btn') }}
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- Add Menu Item Card -->
-                    <div class="quick-action-card">
-                        <div class="flex items-center mb-4">
-                            <div class="icon-wrapper icon-green">
-                                <i class="fas fa-plus text-white"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-white">{{ __('messages.add_new_menu_item') }}</h3>
-                        </div>
-                        <form action="{{ route('item.store') }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <div class="space-y-4">
-                                <div class="form-group">
-                                    <select name="category_id" class="form-input" required>
-                                        <option value="">{{ __('messages.select_category') }}</option>
-                                        @foreach($categories as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <input type="text" name="name" placeholder="{{ __('messages.item_name') }}" class="form-input" required>
-                                </div>
-                                <div class="form-group">
-                                    <textarea name="description" placeholder="{{ __('messages.description_optional') }}"
-                                              class="form-input" rows="2"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <input type="number" step="0.01" name="price" placeholder="{{ __('messages.price') }}"
-                                           class="form-input" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">{{ __('messages.item_image_optional') }}</label>
-                                    <input type="file" name="image" accept="image/*" class="form-input">
-                                </div>
-                                <button type="submit" class="btn btn-success w-full">
-                                    <i class="fas fa-plus w-4 h-4"></i>
-                                    {{ __('messages.add_menu_item_btn') }}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
                 <!-- Menu Categories and Items -->
                 @if($categories->isEmpty())
                     <div class="card text-center">
@@ -655,4 +870,28 @@
             }
         }
     </style>
+
+    <script>
+        function resetThemeColors() {
+            if (confirm('{{ __("messages.confirm_reset_theme_colors") }}')) {
+                // Reset all color inputs to default values
+                document.querySelector('input[name="primary_color"]').value = '#667eea';
+                document.querySelector('input[name="secondary_color"]').value = '#764ba2';
+                document.querySelector('input[name="accent_color"]').value = '#4facfe';
+                document.querySelector('input[name="text_color"]').value = '#ffffff';
+                document.querySelector('input[name="background_color"]').value = '#0a0e27';
+                document.querySelector('input[name="card_color"]').value = '#252d56';
+                document.querySelector('input[name="secondary_bg"]').value = '#141b3c';
+                document.querySelector('input[name="tertiary_bg"]').value = '#1e2749';
+                document.querySelector('input[name="secondary_text"]').value = '#e2e8f0';
+                document.querySelector('input[name="muted_text"]').value = '#94a3b8';
+                document.querySelector('input[name="input_bg"]').value = '#1e2749';
+                document.querySelector('input[name="input_border"]').value = '#334155';
+                document.querySelector('input[name="language_bg"]').value = '#1e2749';
+
+                // Submit the form to save the reset values
+                document.querySelector('form[action*="update.settings"]').submit();
+            }
+        }
+    </script>
 </x-app-layout>

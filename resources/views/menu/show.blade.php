@@ -10,33 +10,89 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
+        
+        @if($restaurant->theme_colors)
         :root {
+            --primary-color: {{ $restaurant->theme_colors['primary'] ?? '#667eea' }};
+            --secondary-color: {{ $restaurant->theme_colors['secondary'] ?? '#764ba2' }};
+            --accent-color: {{ $restaurant->theme_colors['accent'] ?? '#4facfe' }};
+            --text-primary: {{ $restaurant->theme_colors['text'] ?? '#ffffff' }};
+            --bg-primary: {{ $restaurant->theme_colors['background'] ?? '#0a0e27' }};
+            --bg-card: {{ $restaurant->theme_colors['card'] ?? '#252d56' }};
+
+            --primary-color-rgb: {{ implode(',', sscanf($restaurant->theme_colors['primary'] ?? '#667eea', "#%02x%02x%02x") ?: [102, 126, 234]) }};
+            --secondary-color-rgb: {{ implode(',', sscanf($restaurant->theme_colors['secondary'] ?? '#764ba2', "#%02x%02x%02x") ?: [118, 75, 162]) }};
+            --bg-primary-rgb: {{ implode(',', sscanf($restaurant->theme_colors['background'] ?? '#0a0e27', "#%02x%02x%02x") ?: [10, 14, 39]) }};
+            --bg-card-rgb: {{ implode(',', sscanf($restaurant->theme_colors['card'] ?? '#252d56', "#%02x%02x%02x") ?: [37, 45, 86]) }};
+
+            --primary-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            --accent-gradient: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-color) 100%);
+
+            --bg-secondary: {{ $restaurant->theme_colors['secondary_bg'] ?? '#141b3c' }};
+            --bg-tertiary: {{ $restaurant->theme_colors['tertiary_bg'] ?? '#1e2749' }};
+            --bg-elevated: #2a3365;
+
+            --text-secondary: {{ $restaurant->theme_colors['secondary_text'] ?? '#e2e8f0' }};
+            --text-muted: {{ $restaurant->theme_colors['muted_text'] ?? '#94a3b8' }};
+
+            --border-primary: #334155;
+            --border-secondary: #475569;
+            --border-accent: #64748b;
+
+            --input-bg: {{ $restaurant->theme_colors['input_bg'] ?? '#1e2749' }};
+            --input-border: {{ $restaurant->theme_colors['input_border'] ?? '#334155' }};
+            --language-bg: {{ $restaurant->theme_colors['language_bg'] ?? '#1e2749' }};
+
+            --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.2);
+            --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        body {
+            background: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+        @else
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #4facfe;
+            --text-primary: #ffffff;
+            --bg-primary: #0a0e27;
+            --bg-card: #252d56;
+
+            --primary-color-rgb: 102,126,234;
+            --secondary-color-rgb: 118,75,162;
+            --bg-primary-rgb: 10,14,39;
+            --bg-card-rgb: 37,45,86;
+
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            
-            --bg-primary: #0a0e27;
+
             --bg-secondary: #141b3c;
             --bg-tertiary: #1e2749;
-            --bg-card: #252d56;
             --bg-elevated: #2a3365;
-            
-            --text-primary: #ffffff;
+
             --text-secondary: #e2e8f0;
             --text-muted: #94a3b8;
-            
+
             --border-primary: #334155;
             --border-secondary: #475569;
             --border-accent: #64748b;
-            
+
             --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.15);
             --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.2);
             --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.25);
-            
+
             --radius-lg: 16px;
             --radius-xl: 24px;
         }
+        @endif
 
         * {
             box-sizing: border-box;
@@ -54,9 +110,10 @@
         }
 
         .header-gradient {
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%) !important;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--secondary-bg) 50%, var(--tertiary-bg) 100%) !important;
             position: relative;
             overflow: hidden;
+            min-height: 70vh;
         }
 
         .header-gradient::before {
@@ -66,8 +123,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at 30% 20%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 30% 20%, rgba(var(--primary-color-rgb), 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(var(--secondary-color-rgb), 0.1) 0%, transparent 50%);
             pointer-events: none;
         }
 
@@ -127,7 +184,7 @@
 
         .menu-item-card:hover {
             transform: translateY(-8px) scale(1.02) !important;
-            box-shadow: var(--shadow-xl), 0 0 40px rgba(102, 126, 234, 0.2) !important;
+            box-shadow: var(--shadow-xl), 0 0 40px rgba(var(--primary-color-rgb), 0.2) !important;
             border-color: var(--border-accent) !important;
         }
 
@@ -228,7 +285,7 @@
 
         .quantity-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
         }
 
         .quantity-btn:disabled {
@@ -412,8 +469,8 @@
 
         .form-input {
             width: 100%;
-            background: var(--bg-tertiary);
-            border: 2px solid var(--border-primary);
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
             color: var(--text-primary);
             padding: 1rem;
             border-radius: 12px;
@@ -422,8 +479,8 @@
         }
 
         .form-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
             outline: none;
         }
 
@@ -544,8 +601,67 @@
             animation: fadeInUp 0.6s ease-out;
         }
 
+        /* Launch Animation Styles */
+        .animate-bounce-in {
+            animation: bounceIn 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .animate-slide-up {
+            animation: slideUp 1s ease-out 0.3s both;
+        }
+
+        .animate-slide-up-delayed {
+            animation: slideUp 1s ease-out 0.6s both;
+        }
+
+        .animate-slide-up-delayed-2 {
+            animation: slideUp 1s ease-out 0.9s both;
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) rotate(-180deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05) rotate(0deg);
+            }
+            70% {
+                transform: scale(0.9) rotate(0deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        @keyframes slideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
         .glass {
-            background: rgba(37, 45, 86, 0.25) !important;
+            background: rgba(var(--bg-card-rgb), 0.25) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -561,15 +677,86 @@
             margin-bottom: 2rem;
             opacity: 0.6;
         }
+        .category-pill {
+    padding: 0.5rem 1rem;
+    background: var(--bg-card);
+    border: 2px solid var(--border-primary);
+    border-radius: 25px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
 
-    </style>
+.category-pill:hover,
+.category-pill.active {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+}
+
+.social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.social-link:hover {
+    transform: translateY(-3px) scale(1.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.social-link.facebook { background: linear-gradient(135deg, #1877f2, #42a5f5); }
+.social-link.instagram { background: linear-gradient(135deg, #e4405f, #f093fb); }
+.social-link.snapchat { background: linear-gradient(135deg, #fffc00, #fff700); color: #000; }
+.social-link.twitter { background: linear-gradient(135deg, #1da1f2, #42a5f5); }
+.social-link.tiktok { background: linear-gradient(135deg, #000000, #333333); }
+.social-link.whatsapp { background: linear-gradient(135deg, #25d366, #128c7e); }
+
+/* Theme overrides for Tailwind classes */
+.text-white { color: var(--text-primary) !important; }
+.text-gray-300 { color: var(--text-secondary) !important; }
+.text-gray-400 { color: var(--text-muted) !important; }
+.text-gray-500 { color: var(--text-muted) !important; }
+.bg-gray-800 { background: var(--input-bg) !important; }
+.bg-gray-700 { background: var(--bg-elevated) !important; }
+.border-gray-600 { border-color: var(--input-border) !important; }
+.text-gray-400 { color: var(--text-muted) !important; }
+.placeholder-gray-400::placeholder { color: var(--text-muted) !important; }
+.focus\:border-blue-500:focus { border-color: var(--primary-color) !important; }
+.focus\:ring-blue-500\/20:focus { box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1) !important; }
+
+/* Specific overrides for search bar and language selector */
+#menuSearch { background: var(--input-bg) !important; }
+#language-select { background: var(--input-bg) !important; }
+
+</style>
 </head>
-<body style="background-color: #0a0e27; color: #e2e8f0;">
+<body>
     <!-- Language Selector -->
     <div style="position: absolute; top: 16px; left: 16px; z-index: 100;">
-        <div class="rounded-lg p-2 flex items-center space-x-2">
-            <i class="fas fa-globe text-white"></i>
-            <select id="language-select" class="bg-transparent text-white border-none outline-none text-sm">
+        <div class="rounded-lg p-2 flex items-center space-x-2" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.2);">
+            <i class="fas fa-globe" style="color: var(--text-primary);"></i>
+            <select id="language-select" style="background: transparent; color: var(--text-primary); border: none; outline: none; font-size: 0.875rem;">
                 <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>English</option>
                 <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>العربية</option>
             </select>
@@ -585,28 +772,97 @@
 
     <!-- Header -->
     <div class="header-gradient sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-10">
-            <div class="text-center animate-fade-in-up">
+        @if($restaurant->background_image)
+            <div class="absolute inset-0" style="background-image: url('{{ asset('storage/' . $restaurant->background_image) }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+                <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, 0.6);"></div>
+            </div>
+        @endif
+        <div class="relative max-w-6xl mx-auto px-4 py-10">
+            <div class="text-center">
                 @if($restaurant->logo)
-                    <img src="{{ asset('storage/' . $restaurant->logo) }}" 
-                         alt="{{ $restaurant->name }}" 
-                         class="restaurant-logo mx-auto mb-8">
+                    <img src="{{ asset('storage/' . $restaurant->logo) }}"
+                         alt="{{ $restaurant->name }}"
+                         class="restaurant-logo mx-auto mb-8 animate-bounce-in">
                 @else
-                    <div class="restaurant-logo-placeholder mx-auto mb-8">
+                    <div class="restaurant-logo-placeholder mx-auto mb-8 animate-bounce-in">
                         <span class="text-white text-5xl font-bold">{{ substr($restaurant->name, 0, 1) }}</span>
                     </div>
                 @endif
-                <h1 class="text-6xl md:text-7xl font-bold text-white mb-6 font-display">
+                <h1 class="text-6xl md:text-7xl font-bold text-white mb-6 font-display animate-slide-up">
                     {{ $restaurant->name }}
                 </h1>
                 @if($restaurant->description)
-                    <p class="text-gray-300 text-xl md:text-2xl max-w-3xl mx-auto mb-8 leading-relaxed">
+                    <p class="text-gray-300 text-xl md:text-2xl max-w-3xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed">
                         {{ $restaurant->description }}
                     </p>
                 @endif
             </div>
         </div>
+        <!-- Social Media Links -->
+@if($restaurant->facebook_url || $restaurant->instagram_url || $restaurant->snapchat_url || $restaurant->whatsapp_url || $restaurant->twitter_url || $restaurant->tiktok_url)
+    <div class="social-links animate-slide-up-delayed-2">
+        @if($restaurant->facebook_url)
+            <a href="{{ $restaurant->facebook_url }}" target="_blank" class="social-link facebook animate-float">
+                <i class="fab fa-facebook-f"></i>
+            </a>
+        @endif
+        @if($restaurant->instagram_url)
+            <a href="{{ $restaurant->instagram_url }}" target="_blank" class="social-link instagram animate-float">
+                <i class="fab fa-instagram"></i>
+            </a>
+        @endif
+        @if($restaurant->snapchat_url)
+            <a href="{{ $restaurant->snapchat_url }}" target="_blank" class="social-link snapchat animate-float">
+                <i class="fab fa-snapchat-ghost"></i>
+            </a>
+        @endif
+        @if($restaurant->twitter_url)
+            <a href="{{ $restaurant->twitter_url }}" target="_blank" class="social-link twitter animate-float">
+                <i class="fab fa-twitter"></i>
+            </a>
+        @endif
+        @if($restaurant->tiktok_url)
+            <a href="{{ $restaurant->tiktok_url }}" target="_blank" class="social-link tiktok animate-float">
+                <i class="fab fa-tiktok"></i>
+            </a>
+        @endif
+        @if($restaurant->whatsapp_url)
+            <a href="{{ $restaurant->whatsapp_url }}" target="_blank" class="social-link whatsapp animate-float">
+                <i class="fab fa-whatsapp"></i>
+            </a>
+        @endif
     </div>
+@endif
+    </div>
+    
+
+    <!-- Search and Category Navigation -->
+<div class="max-w-7xl mx-auto px-4 py-8 sticky top-0 z-40" style="background: rgba(var(--bg-primary-rgb), 0.95); backdrop-filter: blur(20px);">
+    <!-- Search Bar -->
+    <div class="max-w-md mx-auto mb-6">
+        <div class="relative">
+            <input type="text" id="menuSearch" placeholder="{{ __('messages.search_menu') }}" 
+                   class="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        </div>
+    </div>
+    
+    <!-- Category Quick Links -->
+    @if(!$restaurant->activeMenuCategories->isEmpty())
+        <div class="flex flex-wrap justify-center gap-3 mb-4">
+            <button onclick="clearSearch()" class="category-pill active" data-category="all">
+                {{ __('messages.all_categories') }}
+            </button>
+            @foreach($restaurant->activeMenuCategories as $category)
+                <button onclick="filterByCategory('{{ $category->id }}')" class="category-pill" data-category="{{ $category->id }}">
+                    {{ $category->name }}
+                </button>
+            @endforeach
+        </div>
+    @endif
+    
+</div>
+
 
 
     <!-- Menu Content -->
@@ -958,6 +1214,71 @@
                 select.value = appLocale;
             }
         });
+
+        // Search and Filter Functionality
+document.getElementById('menuSearch').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const menuItems = document.querySelectorAll('.menu-item-card');
+    const categories = document.querySelectorAll('[data-category-section]');
+    
+    menuItems.forEach(item => {
+        const itemName = item.querySelector('.menu-item-title').textContent.toLowerCase();
+        const itemDescription = item.querySelector('.menu-item-description')?.textContent.toLowerCase() || '';
+        
+        if (itemName.includes(searchTerm) || itemDescription.includes(searchTerm)) {
+            item.style.display = 'block';
+            item.closest('[data-category-section]').style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Hide empty categories
+    categories.forEach(category => {
+        const visibleItems = category.querySelectorAll('.menu-item-card[style="display: block"], .menu-item-card:not([style*="display: none"])');
+        if (visibleItems.length === 0 && searchTerm !== '') {
+            category.style.display = 'none';
+        }
+    });
+});
+
+function filterByCategory(categoryId) {
+    const menuSections = document.querySelectorAll('[data-category-section]');
+    const pills = document.querySelectorAll('.category-pill');
+    
+    // Update active pill
+    pills.forEach(pill => pill.classList.remove('active'));
+    document.querySelector(`[data-category="${categoryId}"]`).classList.add('active');
+    
+    // Show/hide sections
+    menuSections.forEach(section => {
+        if (section.dataset.categorySection === categoryId) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+    
+    // Clear search
+    document.getElementById('menuSearch').value = '';
+}
+
+function clearSearch() {
+    const menuSections = document.querySelectorAll('[data-category-section]');
+    const menuItems = document.querySelectorAll('.menu-item-card');
+    const pills = document.querySelectorAll('.category-pill');
+    
+    // Show all items and sections
+    menuSections.forEach(section => section.style.display = 'block');
+    menuItems.forEach(item => item.style.display = 'block');
+    
+    // Update active pill
+    pills.forEach(pill => pill.classList.remove('active'));
+    document.querySelector('[data-category="all"]').classList.add('active');
+    
+    // Clear search
+    document.getElementById('menuSearch').value = '';
+}
     </script>
     @endif
 </body>

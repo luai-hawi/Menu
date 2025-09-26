@@ -63,6 +63,61 @@ return [
     'delivery_location' => '📍 *Delivery Location:*',
     'additional_notes_label' => '📝 *Additional Notes:*',
     'thank_you' => 'Thank you! 🙏',
+    // Social Media & Theme Settings
+'social_media_theme' => 'Social Media & Theme Settings',
+'social_media_links' => 'Social Media Links',
+'theme_colors' => 'Theme Colors',
+'primary_color' => 'Primary Color',
+'secondary_color' => 'Secondary Color',
+'accent_color' => 'Accent Color',
+'text_color' => 'Text Color',
+'background_color' => 'Background Color',
+'card_color' => 'Card Color',
+'secondary_background' => 'Secondary Background',
+'tertiary_background' => 'Tertiary Background',
+'secondary_text' => 'Secondary Text',
+'muted_text' => 'Muted Text',
+'input_background' => 'Input Background',
+'input_border' => 'Input Border',
+'language_selector_bg' => 'Language Selector Background',
+'reset_theme_colors' => 'Reset Theme Colors',
+'confirm_reset_theme_colors' => 'Are you sure you want to reset all theme colors to default values?',
+'restaurant_header' => 'Restaurant Header',
+'background_image' => 'Background Image',
+'background_image_optional' => 'Background Image (Optional)',
+'background_image_help' => 'Upload a background image for your restaurant header. Recommended size: 1920x1080px. The image will be darkened for better text readability.',
+'current_background' => 'Current Background Image',
+'save_background_image' => 'Save Background Image',
+'restaurant_profile' => 'Restaurant Profile',
+'restaurant_name_help' => 'This is the name that appears on your public menu',
+'restaurant_description_placeholder' => 'Describe your restaurant, its specialties, atmosphere, etc.',
+'restaurant_description_help' => 'This description will appear on your public menu',
+'logo_upload_help' => 'Upload a new logo for your restaurant (JPEG, PNG, GIF - Max 2MB)',
+'current_logo' => 'Current Logo',
+'save_profile' => 'Save Profile',
+'save_settings' => 'Save Settings',
+
+// Search and Navigation
+'search_menu' => 'Search menu items...',
+'all_categories' => 'All Categories',
+
+// Social Media Placeholders (if you want to show examples)
+'facebook_placeholder' => 'https://facebook.com/yourpage',
+'instagram_placeholder' => 'https://instagram.com/yourprofile',
+'snapchat_placeholder' => 'https://snapchat.com/add/username',
+'twitter_placeholder' => 'https://twitter.com/username',
+'tiktok_placeholder' => 'https://tiktok.com/@username',
+'whatsapp_business_placeholder' => 'https://wa.me/1234567890',
+
+// Success Messages
+'settings_updated_successfully' => 'Settings updated successfully!',
+'social_links_updated' => 'Social media links updated successfully!',
+'theme_colors_updated' => 'Theme colors updated successfully!',
+
+// Additional UI Labels
+'optional_field' => 'Optional',
+'choose_colors' => 'Choose your restaurant\'s theme colors',
+'social_media_help' => 'Add links to your social media profiles to connect with customers',
 
     // Restaurant Dashboard
     'view_public_menu' => 'View Public Menu',
