@@ -770,8 +770,10 @@
         </div>
     </div>
 
+    
+
     <!-- Header -->
-    <div class="header-gradient sticky top-0 z-50">
+    <div class="header-gradient">
         @if($restaurant->background_image)
             <div class="absolute inset-0" style="background-image: url('{{ asset('storage/' . $restaurant->background_image) }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
                 <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, 0.6);"></div>
@@ -836,17 +838,17 @@
     </div>
     
 
-    <!-- Search and Category Navigation -->
-<div class="max-w-7xl mx-auto px-4 py-8 sticky top-0 z-40" style="background: rgba(var(--bg-primary-rgb), 0.95); backdrop-filter: blur(20px);">
+<!-- Search and Category Navigation -->
+<div class="max-w-7xl mx-auto px-4 py-8" style="background: var(--bg-primary);">
     <!-- Search Bar -->
     <div class="max-w-md mx-auto mb-6">
         <div class="relative">
-            <input type="text" id="menuSearch" placeholder="{{ __('messages.search_menu') }}" 
+            <input type="text" id="menuSearch" placeholder="{{ __('messages.search_menu') }}"
                    class="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
         </div>
     </div>
-    
+
     <!-- Category Quick Links -->
     @if(!$restaurant->activeMenuCategories->isEmpty())
         <div class="flex flex-wrap justify-center gap-3 mb-4">
@@ -860,9 +862,8 @@
             @endforeach
         </div>
     @endif
-    
-</div>
 
+</div>
 
 
     <!-- Menu Content -->
@@ -875,7 +876,7 @@
             </div>
         @else
             @foreach($restaurant->activeMenuCategories as $category)
-                <div class="mb-20">
+                <div class="mb-20" data-category-section="{{ $category->id }}">
                     <div class="category-header animate-fade-in-up">
                         <h2>{{ $category->name }}</h2>
                     </div>
@@ -1215,16 +1216,26 @@
             }
         });
 
-        // Search and Filter Functionality
-document.getElementById('menuSearch').addEventListener('input', function(e) {
+    </script>
+    @endif
+    <!-- Search and Filter Functionality -->
+    <script>
+        document.getElementById('menuSearch').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();
     const menuItems = document.querySelectorAll('.menu-item-card');
     const categories = document.querySelectorAll('[data-category-section]');
-    
+
+    if (searchTerm === '') {
+        // Show all items and categories when search is cleared
+        menuItems.forEach(item => item.style.display = 'block');
+        categories.forEach(category => category.style.display = 'block');
+        return;
+    }
+
     menuItems.forEach(item => {
         const itemName = item.querySelector('.menu-item-title').textContent.toLowerCase();
         const itemDescription = item.querySelector('.menu-item-description')?.textContent.toLowerCase() || '';
-        
+
         if (itemName.includes(searchTerm) || itemDescription.includes(searchTerm)) {
             item.style.display = 'block';
             item.closest('[data-category-section]').style.display = 'block';
@@ -1232,7 +1243,7 @@ document.getElementById('menuSearch').addEventListener('input', function(e) {
             item.style.display = 'none';
         }
     });
-    
+
     // Hide empty categories
     categories.forEach(category => {
         const visibleItems = category.querySelectorAll('.menu-item-card[style="display: block"], .menu-item-card:not([style*="display: none"])');
@@ -1242,44 +1253,48 @@ document.getElementById('menuSearch').addEventListener('input', function(e) {
     });
 });
 
-function filterByCategory(categoryId) {
-    const menuSections = document.querySelectorAll('[data-category-section]');
-    const pills = document.querySelectorAll('.category-pill');
-    
-    // Update active pill
-    pills.forEach(pill => pill.classList.remove('active'));
-    document.querySelector(`[data-category="${categoryId}"]`).classList.add('active');
-    
-    // Show/hide sections
-    menuSections.forEach(section => {
-        if (section.dataset.categorySection === categoryId) {
-            section.style.display = 'block';
-        } else {
-            section.style.display = 'none';
-        }
-    });
-    
-    // Clear search
-    document.getElementById('menuSearch').value = '';
-}
+        function filterByCategory(categoryId) {
+            const menuSections = document.querySelectorAll('[data-category-section]');
+            const pills = document.querySelectorAll('.category-pill');
 
-function clearSearch() {
-    const menuSections = document.querySelectorAll('[data-category-section]');
-    const menuItems = document.querySelectorAll('.menu-item-card');
-    const pills = document.querySelectorAll('.category-pill');
-    
-    // Show all items and sections
-    menuSections.forEach(section => section.style.display = 'block');
-    menuItems.forEach(item => item.style.display = 'block');
-    
-    // Update active pill
-    pills.forEach(pill => pill.classList.remove('active'));
-    document.querySelector('[data-category="all"]').classList.add('active');
-    
-    // Clear search
-    document.getElementById('menuSearch').value = '';
-}
+            // Update active pill
+            pills.forEach(pill => pill.classList.remove('active'));
+            document.querySelector(`[data-category="${categoryId}"]`).classList.add('active');
+
+            // Show/hide sections
+            if (categoryId === 'all') {
+                menuSections.forEach(section => section.style.display = 'block');
+            } else {
+                menuSections.forEach(section => {
+                    if (section.dataset.categorySection === categoryId) {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            }
+
+            // Clear search
+            document.getElementById('menuSearch').value = '';
+        }
+
+        function clearSearch() {
+            const menuSections = document.querySelectorAll('[data-category-section]');
+            const menuItems = document.querySelectorAll('.menu-item-card');
+            const pills = document.querySelectorAll('.category-pill');
+
+            // Show all items and sections
+            menuSections.forEach(section => section.style.display = 'block');
+            menuItems.forEach(item => item.style.display = 'block');
+
+            // Update active pill
+            pills.forEach(pill => pill.classList.remove('active'));
+            document.querySelector('[data-category="all"]').classList.add('active');
+
+            // Clear search
+            document.getElementById('menuSearch').value = '';
+        }
+
     </script>
-    @endif
 </body>
 </html>
