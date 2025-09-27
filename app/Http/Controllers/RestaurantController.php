@@ -376,6 +376,7 @@ class RestaurantController extends Controller
 
         // Handle background image upload/removal
         if ($request->hasFile('background_image')) {
+            $updateData = [];
             // Delete old background image if exists
             if ($restaurant->background_image) {
                 $this->imageService->deleteImage($restaurant->background_image);
@@ -391,11 +392,11 @@ class RestaurantController extends Controller
         } elseif ($request->has('remove_background') && $request->remove_background == '1') {
             // Remove background image if requested
             if ($restaurant->background_image) {
+                $updateData = [];
                 $this->imageService->deleteImage($restaurant->background_image);
             }
             $updateData['background_image'] = null;
         }
-
         $restaurant->update($updateData);
 
         return redirect()->route('restaurant.dashboard')
