@@ -529,31 +529,31 @@
 
         @media (max-width: 768px) {
             .responsive-grid {
-                grid-template-columns: repeat(2, 1fr) !important;
+                grid-template-columns: repeat(1, 1fr) !important;
                 gap: 1rem !important;
             }
-            
+
             .menu-item-card {
                 font-size: 0.9rem;
             }
-            
+
             .menu-item-content {
                 padding: 1rem;
             }
-            
+
             .menu-item-title {
                 font-size: 1.2rem !important;
             }
-            
+
             .price {
                 font-size: 1.4rem !important;
             }
-            
+
             .menu-image,
             .menu-image-placeholder {
-                height: 150px !important;
+                height: 200px !important;
             }
-            
+
             .restaurant-logo,
             .restaurant-logo-placeholder {
                 width: 140px !important;
