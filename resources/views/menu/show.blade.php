@@ -527,7 +527,7 @@
             box-shadow: 0 8px 25px rgba(37, 211, 102, 0.3);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 600px) {
             .responsive-grid {
                 grid-template-columns: repeat(1, 1fr) !important;
                 gap: 1rem !important;
