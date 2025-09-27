@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DashboardController;
 
 // Auth routes MUST come first
 require __DIR__.'/auth.php';
@@ -14,15 +15,8 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
-// Default dashboard (redirect to appropriate dashboard based on role)
-Route::get('/dashboard', function () {
-    if (auth()->user()->isAdmin()) {
-        return redirect()->route('admin.index');
-    } elseif (auth()->user()->isRestaurantOwner() || auth()->user()->restaurants()->exists()) {
-        return redirect()->route('restaurant.dashboard');
-    }
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Unified dashboard
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 // Profile routes
 Route::middleware('auth')->group(function () {
@@ -33,7 +27,9 @@ Route::middleware('auth')->group(function () {
 
 // Restaurant owner routes
 Route::middleware('auth')->group(function () {
-    Route::get('/restaurant/dashboard', [RestaurantController::class, 'dashboard'])->name('restaurant.dashboard');
+    Route::get('/restaurant/dashboard', function () {
+        return redirect()->route('dashboard');
+    })->name('restaurant.dashboard');
     Route::post('/restaurant/select', [RestaurantController::class, 'selectRestaurant'])->name('restaurant.select');
     Route::post('/category', [RestaurantController::class, 'storeCategory'])->name('category.store');
     Route::post('/menu-item', [RestaurantController::class, 'storeItem'])->name('item.store');
@@ -54,7 +50,9 @@ Route::middleware('admin')->group(function () {
 
 // Admin routes
 Route::middleware('admin')->prefix('admin')->group(function () {
-    Route::get('/', [AdminController::class, 'index'])->name('admin.index');
+    Route::get('/', function () {
+        return redirect()->route('dashboard');
+    })->name('admin.index');
     Route::get('/restaurant/create', [AdminController::class, 'createRestaurant'])->name('admin.restaurant.create');
     Route::post('/restaurant', [AdminController::class, 'storeRestaurant'])->name('admin.restaurant.store');
     Route::post('/restaurant/{restaurant}/toggle', [AdminController::class, 'toggleRestaurant'])->name('admin.restaurant.toggle');
