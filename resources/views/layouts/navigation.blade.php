@@ -6,25 +6,26 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}" class="flex items-center">
-                        <img src="{{ asset('images/logo.png') }}" alt="Hawi Tech" style="width: 90px; height: 90px; border-radius: 12px; background: transparent;">
+                        <img src="{{ asset('images/logo.png') }}" alt="Hawi Tech"
+                            style="width: 90px; height: 90px; border-radius: 12px; background: transparent;">
                         <span class="ml-4 text-2xl font-bold text-white">Hawi Tech</span>
                     </a>
                 </div>
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                    
-                    @if(auth()->check())
-                        @if(auth()->user()->isAdmin())
+
+                    @if (auth()->check())
+                        @if (auth()->user()->isAdmin())
                             <a href="{{ route('admin.index') }}"
-                               class="nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}">
+                                class="nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}">
                                 {{ __('messages.admin_panel') }}
                             </a>
                         @endif
-                        
-                        @if(auth()->user()->isRestaurantOwner() || auth()->user()->restaurants()->exists())
+
+                        @if (auth()->user()->isRestaurantOwner() || auth()->user()->restaurants()->exists())
                             <a href="{{ route('restaurant.dashboard') }}"
-                               class="nav-link {{ request()->routeIs('restaurant.*') ? 'active' : '' }}">
+                                class="nav-link {{ request()->routeIs('restaurant.*') ? 'active' : '' }}">
                                 {{ __('messages.restaurant_dashboard') }}
                             </a>
                         @endif
@@ -36,43 +37,41 @@
             <div class="hidden sm:flex sm:items-center sm:ml-6">
                 @auth
                     <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" 
-                                @click.away="open = false"
-                                class="profile-button">
+                        <button @click="open = !open" @click.away="open = false" class="profile-button">
                             <div class="flex items-center">
                                 <span class="text-gray-300 font-medium">{{ Auth::user()->name }}</span>
-                                <svg class="ml-2 h-4 w-4 transition-transform duration-200" 
-                                     :class="{ 'rotate-180': open }"
-                                     xmlns="http://www.w3.org/2000/svg" 
-                                     viewBox="0 0 20 20" 
-                                     fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': open }"
+                                    xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
                                 </svg>
                             </div>
                         </button>
 
                         <!-- Dropdown Menu -->
-                        <div x-show="open" 
-                             x-transition:enter="transition ease-out duration-200"
-                             x-transition:enter-start="transform opacity-0 scale-95"
-                             x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100"
-                             x-transition:leave-end="transform opacity-0 scale-95"
-                             class="dropdown-menu"
-                             style="display: none;">
+                        <div x-show="open" x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="transform opacity-0 scale-95"
+                            x-transition:enter-end="transform opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="transform opacity-100 scale-100"
+                            x-transition:leave-end="transform opacity-0 scale-95" class="dropdown-menu"
+                            style="display: none;">
                             <a href="{{ route('profile.edit') }}" class="dropdown-item">
                                 <i class="fas fa-user mr-3"></i>
                                 {{ __('messages.profile') }}
                             </a>
 
                             <!-- Language Switcher -->
-                            <div class="dropdown-item">
+                            <div class="dropdown-item" @click.stop>
                                 <i class="fas fa-globe mr-3"></i>
                                 {{ __('messages.language') }}:
-                                <select id="language-select" class="ml-2 bg-transparent text-white border-none outline-none">
-                                    <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>{{ __('messages.english') }}</option>
-                                    <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>{{ __('messages.arabic') }}</option>
+                                <select id="language-select"
+                                    class="ml-2 bg-transparent text-white border-none outline-none">
+                                    <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>
+                                        {{ __('messages.english') }}</option>
+                                    <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>
+                                        {{ __('messages.arabic') }}</option>
                                 </select>
                             </div>
 
@@ -98,8 +97,11 @@
             <div class="-mr-2 flex items-center sm:hidden">
                 <button @click="open = ! open" class="hamburger-button">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <path :class="{ 'hidden': open, 'inline-flex': !open }" class="inline-flex"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                        <path :class="{ 'hidden': !open, 'inline-flex': open }" class="hidden" stroke-linecap="round"
+                            stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
@@ -107,20 +109,20 @@
     </div>
 
     <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden mobile-menu">
+    <div :class="{ 'block': open, 'hidden': !open }" class="hidden sm:hidden mobile-menu">
         <div class="pt-2 pb-3 space-y-1">
-            
-            @if(auth()->check())
-                @if(auth()->user()->isAdmin())
+
+            @if (auth()->check())
+                @if (auth()->user()->isAdmin())
                     <a href="{{ route('admin.index') }}"
-                       class="mobile-nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}">
+                        class="mobile-nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}">
                         {{ __('messages.admin_panel') }}
                     </a>
                 @endif
-                
-                @if(auth()->user()->isRestaurantOwner() || auth()->user()->restaurants()->exists())
+
+                @if (auth()->user()->isRestaurantOwner() || auth()->user()->restaurants()->exists())
                     <a href="{{ route('restaurant.dashboard') }}"
-                       class="mobile-nav-link {{ request()->routeIs('restaurant.*') ? 'active' : '' }}">
+                        class="mobile-nav-link {{ request()->routeIs('restaurant.*') ? 'active' : '' }}">
                         {{ __('messages.restaurant_dashboard') }}
                     </a>
                 @endif

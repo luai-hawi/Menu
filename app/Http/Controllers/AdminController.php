@@ -16,7 +16,7 @@ use Exception;
 class AdminController extends Controller
 {
     protected $imageService;
-    
+
     public function __construct(ImageService $imageService)
     {
         $this->imageService = $imageService;
@@ -27,13 +27,13 @@ class AdminController extends Controller
         $restaurants = Restaurant::with('user')->latest()->get();
 
         // Get users who are either restaurant owners by role OR have restaurants
-        $users = User::where(function($query) {
+        $users = User::where(function ($query) {
             $query->where('role', 'restaurant_owner')
-                  ->orWhereHas('restaurants');
+                ->orWhereHas('restaurants');
         })->withCount('restaurants')->get();
 
         // Get unpaid or expired subscriptions
-        $unpaidSubscriptions = Subscription::where(function($query) {
+        $unpaidSubscriptions = Subscription::where(function ($query) {
             $query->whereNull('paid_at')->orWhere('expires_at', '<', now());
         })->with('user')->get();
 
@@ -43,9 +43,9 @@ class AdminController extends Controller
     public function createRestaurant()
     {
         // Get users who are either restaurant owners by role OR have restaurants
-        $owners = User::where(function($query) {
+        $owners = User::where(function ($query) {
             $query->where('role', 'restaurant_owner')
-                  ->orWhereHas('restaurants');
+                ->orWhereHas('restaurants');
         })->withCount('restaurants')->get();
 
         return view('admin.create-restaurant', compact('owners'));
@@ -119,6 +119,30 @@ class AdminController extends Controller
         return redirect()->route('admin.index')->with('success', $message);
     }
 
+    public function editRestaurant(Restaurant $restaurant)
+    {
+        return view('admin.edit-restaurant', compact('restaurant'));
+    }
+
+    public function updateRestaurant(Request $request, Restaurant $restaurant)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|unique:restaurants,slug,' . $restaurant->id,
+            'description' => 'nullable|string',
+        ], [
+            'slug.unique' => __('messages.slug_already_taken'),
+        ]);
+
+        $restaurant->update([
+            'name' => $request->name,
+            'slug' => $request->slug,
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('admin.index')->with('success', 'Restaurant updated successfully.');
+    }
+
     public function toggleRestaurant(Restaurant $restaurant)
     {
         $restaurant->is_active = !$restaurant->is_active;
@@ -131,18 +155,18 @@ class AdminController extends Controller
     public function deleteRestaurant(Restaurant $restaurant)
     {
         DB::beginTransaction();
-        
+
         try {
             $restaurantName = $restaurant->name;
-            
+
             // Delete restaurant logo if exists
             if ($restaurant->logo) {
                 $this->deleteImageSafely($restaurant->logo);
             }
-            
+
             // Get all menu categories with their items
             $categories = $restaurant->menuCategories()->with('menuItems')->get();
-            
+
             // Delete all menu item images first
             foreach ($categories as $category) {
                 foreach ($category->menuItems as $item) {
@@ -153,7 +177,7 @@ class AdminController extends Controller
             }
 
             $owner = $restaurant->user;
-            
+
             // Delete the restaurant (this will cascade delete categories and items due to foreign keys)
             $restaurant->delete();
 
@@ -161,21 +185,20 @@ class AdminController extends Controller
             if ($owner && $owner->restaurants()->count() === 0) {
                 $owner->delete();
             }
-            
+
             DB::commit();
-            
+
             return redirect()->route('admin.index')->with('success', "Restaurant '{$restaurantName}' and all associated data have been permanently deleted.");
-            
         } catch (Exception $e) {
             DB::rollback();
-            
+
             // Log the error for debugging
             \Log::error('Failed to delete restaurant: ' . $e->getMessage(), [
                 'restaurant_id' => $restaurant->id,
                 'restaurant_name' => $restaurant->name,
                 'error' => $e->getTraceAsString()
             ]);
-            
+
             return redirect()->route('admin.index')->with('error', 'Failed to delete restaurant. Please check the logs for more details.');
         }
     }

@@ -306,6 +306,14 @@ return [
     'restaurant_created_existing_user' => 'Restaurant ":name" created successfully and assigned to existing user: :email',
     'restaurant_created_new_user' => 'Restaurant ":name" created successfully! New user account created for :email',
 
+    // Edit Restaurant
+    'edit_restaurant' => 'Edit Restaurant',
+    'modify_restaurant_details' => 'Modify restaurant details',
+    'edit_restaurant_details' => 'Edit Restaurant Details',
+    'update_restaurant_information' => 'Update restaurant information',
+    'update_restaurant' => 'Update Restaurant',
+    'slug_already_taken' => 'The slug is already taken. Please choose a different one.',
+
     // Language
     'language' => 'Language',
     'english' => 'English',

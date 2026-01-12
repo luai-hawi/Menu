@@ -8,7 +8,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 
 // Auth routes MUST come first
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 // Home page
 Route::get('/', function () {
@@ -55,6 +55,8 @@ Route::middleware('admin')->prefix('admin')->group(function () {
     })->name('admin.index');
     Route::get('/restaurant/create', [AdminController::class, 'createRestaurant'])->name('admin.restaurant.create');
     Route::post('/restaurant', [AdminController::class, 'storeRestaurant'])->name('admin.restaurant.store');
+    Route::get('/restaurant/{restaurant}/edit', [AdminController::class, 'editRestaurant'])->name('admin.restaurant.edit');
+    Route::put('/restaurant/{restaurant}', [AdminController::class, 'updateRestaurant'])->name('admin.restaurant.update');
     Route::post('/restaurant/{restaurant}/toggle', [AdminController::class, 'toggleRestaurant'])->name('admin.restaurant.toggle');
     Route::delete('/restaurant/{restaurant}', [AdminController::class, 'deleteRestaurant'])->name('admin.restaurant.delete');
 

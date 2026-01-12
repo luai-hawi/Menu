@@ -17,16 +17,16 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
+
             <!-- Success/Error Messages -->
-            @if(session('success'))
+            @if (session('success'))
                 <div class="alert alert-success mb-6">
                     <i class="fas fa-check-circle mr-2"></i>
                     {{ session('success') }}
                 </div>
             @endif
 
-            @if(session('error'))
+            @if (session('error'))
                 <div class="alert alert-error mb-6">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     {{ session('error') }}
@@ -44,17 +44,18 @@
                         <p class="text-3xl font-bold text-blue-400">{{ $restaurants->count() }}</p>
                     </div>
                 </div>
-                
+
                 <div class="stat-card">
                     <div class="stat-icon bg-gradient-to-br from-green-500 to-green-600">
                         <i class="fas fa-check-circle text-white text-2xl"></i>
                     </div>
                     <div class="stat-content">
                         <h3 class="text-lg font-semibold text-white mb-1">{{ __('messages.active_restaurants') }}</h3>
-                        <p class="text-3xl font-bold text-green-400">{{ $restaurants->where('is_active', true)->count() }}</p>
+                        <p class="text-3xl font-bold text-green-400">
+                            {{ $restaurants->where('is_active', true)->count() }}</p>
                     </div>
                 </div>
-                
+
                 <div class="stat-card">
                     <div class="stat-icon bg-gradient-to-br from-purple-500 to-purple-600">
                         <i class="fas fa-users text-white text-2xl"></i>
@@ -74,8 +75,8 @@
                         <p class="text-gray-400 mt-1">{{ __('messages.manage_accounts_settings') }}</p>
                     </div>
                 </div>
-                
-                @if($restaurants->isEmpty())
+
+                @if ($restaurants->isEmpty())
                     <div class="empty-state">
                         <div class="empty-state-icon">
                             <i class="fas fa-store text-6xl text-gray-500 mb-4"></i>
@@ -92,33 +93,42 @@
                         <table class="w-full">
                             <thead>
                                 <tr class="border-b border-gray-600">
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.restaurant') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.url') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.owner') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.phone_number') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.created') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.status') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">{{ __('messages.actions') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.restaurant') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.url') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.owner') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.phone_number') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.created') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.status') }}</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        {{ __('messages.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($restaurants as $restaurant)
+                                @foreach ($restaurants as $restaurant)
                                     <tr class="table-row">
                                         <td class="py-4 px-4">
                                             <div class="flex items-center">
-                                                @if($restaurant->logo)
-                                                    <img src="{{ asset('storage/' . $restaurant->logo) }}" 
-                                                         alt="{{ $restaurant->name }}" 
-                                                         class="restaurant-avatar">
+                                                @if ($restaurant->logo)
+                                                    <img src="{{ asset('storage/' . $restaurant->logo) }}"
+                                                        alt="{{ $restaurant->name }}" class="restaurant-avatar">
                                                 @else
                                                     <div class="restaurant-avatar-placeholder">
-                                                        <span class="text-white font-semibold text-lg">{{ substr($restaurant->name, 0, 1) }}</span>
+                                                        <span
+                                                            class="text-white font-semibold text-lg">{{ substr($restaurant->name, 0, 1) }}</span>
                                                     </div>
                                                 @endif
                                                 <div class="ml-4">
-                                                    <div class="text-white font-semibold text-lg">{{ $restaurant->name }}</div>
-                                                    @if($restaurant->description)
-                                                        <div class="text-gray-400 text-sm mt-1">{{ Str::limit($restaurant->description, 50) }}</div>
+                                                    <div class="text-white font-semibold text-lg">
+                                                        {{ $restaurant->name }}</div>
+                                                    @if ($restaurant->description)
+                                                        <div class="text-gray-400 text-sm mt-1">
+                                                            {{ Str::limit($restaurant->description, 50) }}</div>
                                                     @endif
                                                 </div>
                                             </div>
@@ -132,10 +142,12 @@
                                         </td>
                                         <td class="py-4 px-4">
                                             <div class="text-white font-medium">
-                                                @if($restaurant->user->phone)
-                                                    <i class="fas fa-phone text-green-400 mr-2"></i>{{ $restaurant->user->phone }}
+                                                @if ($restaurant->user->phone)
+                                                    <i
+                                                        class="fas fa-phone text-green-400 mr-2"></i>{{ $restaurant->user->phone }}
                                                 @else
-                                                    <span class="text-gray-500">{{ __('messages.not_provided') }}</span>
+                                                    <span
+                                                        class="text-gray-500">{{ __('messages.not_provided') }}</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -149,84 +161,84 @@
                                             </div>
                                         </td>
                                         <td class="py-4 px-4">
-                                            <span class="status-badge {{ $restaurant->is_active ? 'status-active' : 'status-inactive' }}">
-                                                <i class="fas {{ $restaurant->is_active ? 'fa-check-circle' : 'fa-times-circle' }} mr-2"></i>
+                                            <span
+                                                class="status-badge {{ $restaurant->is_active ? 'status-active' : 'status-inactive' }}">
+                                                <i
+                                                    class="fas {{ $restaurant->is_active ? 'fa-check-circle' : 'fa-times-circle' }} mr-2"></i>
                                                 {{ $restaurant->is_active ? __('messages.active') : __('messages.inactive') }}
                                             </span>
                                         </td>
                                         <td class="py-4 px-4">
                                             <div class="flex items-center space-x-3">
-                                                <a href="{{ route('menu.show', $restaurant->slug) }}"
-                                                    target="_blank"
+                                                <a href="{{ route('menu.show', $restaurant->slug) }}" target="_blank"
                                                     class="action-btn action-view"
                                                     title="{{ __('messages.view_menu') }}">
-                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        class="w-5 h-5">
-                                                        <path stroke-linecap="round"
-                                                            stroke-linejoin="round"
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
                                                             stroke-width="2"
                                                             d="M14 3h7m0 0v7m0-7L10 14m-4 7h12a2 2 0 002-2V10a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
                                                 </a>
 
-                                                <a href="{{ route('admin.user.edit', $restaurant->user) }}"
+                                                <a href="{{ route('admin.restaurant.edit', $restaurant) }}"
                                                     class="action-btn action-edit"
-                                                    title="{{ __('messages.edit_user') }}">
-                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        class="w-5 h-5">
-                                                        <path stroke-linecap="round"
-                                                            stroke-linejoin="round"
+                                                    title="{{ __('messages.edit_restaurant') }}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
                                                             stroke-width="2"
                                                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                 </a>
 
-                                                <form action="{{ route('admin.restaurant.toggle', $restaurant) }}" method="POST" class="inline">
+                                                <a href="{{ route('admin.user.edit', $restaurant->user) }}"
+                                                    class="action-btn action-edit-user"
+                                                    title="{{ __('messages.edit_user') }}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    </svg>
+                                                </a>
+
+                                                <form action="{{ route('admin.restaurant.toggle', $restaurant) }}"
+                                                    method="POST" class="inline">
                                                     @csrf
-                                                    <button type="submit" 
-                                                            class="action-btn {{ $restaurant->is_active ? 'action-disable' : 'action-enable' }}"
-                                                            title="{{ $restaurant->is_active ? __('messages.disable') : __('messages.enable') }} {{ __('messages.restaurant') }}">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" 
-                                                            viewBox="0 0 24 24" 
-                                                            fill="none" 
-                                                            stroke="currentColor" 
-                                                            stroke-width="2" 
-                                                            stroke-linecap="round" 
-                                                            stroke-linejoin="round" 
+                                                    <button type="submit"
+                                                        class="action-btn {{ $restaurant->is_active ? 'action-disable' : 'action-enable' }}"
+                                                        title="{{ $restaurant->is_active ? __('messages.disable') : __('messages.enable') }} {{ __('messages.restaurant') }}">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                                            fill="none" stroke="currentColor" stroke-width="2"
+                                                            stroke-linecap="round" stroke-linejoin="round"
                                                             class="w-6 h-6 text-red-600">
-                                                        <!-- User head -->
-                                                        <circle cx="12" cy="7" r="4" />
-                                                        <!-- User shoulders -->
-                                                        <path d="M5.5 21a8.38 8.38 0 0 1 13 0" />
-                                                        <!-- Disable slash -->
-                                                        <line x1="4" y1="4" x2="20" y2="20" />
+                                                            <!-- User head -->
+                                                            <circle cx="12" cy="7" r="4" />
+                                                            <!-- User shoulders -->
+                                                            <path d="M5.5 21a8.38 8.38 0 0 1 13 0" />
+                                                            <!-- Disable slash -->
+                                                            <line x1="4" y1="4" x2="20"
+                                                                y2="20" />
                                                         </svg>
                                                     </button>
                                                 </form>
-                                                <button type="button" 
-                                                        class="action-btn action-delete"
-                                                        title="{{ __('messages.delete_restaurant') }}"
-                                                        onclick="confirmDelete('{{ route('admin.restaurant.delete', $restaurant) }}', '{{ $restaurant->name }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" 
-                                                        viewBox="0 0 24 24" 
-                                                        fill="none" 
-                                                        stroke="currentColor" 
-                                                        stroke-width="2" 
-                                                        stroke-linecap="round" 
-                                                        stroke-linejoin="round" 
+                                                <button type="button" class="action-btn action-delete"
+                                                    title="{{ __('messages.delete_restaurant') }}"
+                                                    onclick="confirmDelete('{{ route('admin.restaurant.delete', $restaurant) }}', '{{ $restaurant->name }}')">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                                        fill="none" stroke="currentColor" stroke-width="2"
+                                                        stroke-linecap="round" stroke-linejoin="round"
                                                         class="w-6 h-6 text-red-600">
-                                                    <!-- Trash can -->
-                                                    <polyline points="3 6 5 6 21 6" />
-                                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2" />
-                                                    <!-- Inside lines -->
-                                                    <line x1="10" y1="11" x2="10" y2="17" />
-                                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                                        <!-- Trash can -->
+                                                        <polyline points="3 6 5 6 21 6" />
+                                                        <path
+                                                            d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2" />
+                                                        <!-- Inside lines -->
+                                                        <line x1="10" y1="11" x2="10"
+                                                            y2="17" />
+                                                        <line x1="14" y1="11" x2="14"
+                                                            y2="17" />
                                                     </svg>
                                                 </button>
                                             </div>
@@ -240,66 +252,75 @@
             </div>
 
             <!-- Unpaid Subscriptions -->
-            @if($unpaidSubscriptions->isNotEmpty())
-            <div class="card mt-8">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h3 class="text-2xl font-semibold text-white">Unpaid Subscriptions</h3>
-                        <p class="text-gray-400 mt-1">Restaurant owners who need to pay their subscription</p>
+            @if ($unpaidSubscriptions->isNotEmpty())
+                <div class="card mt-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-2xl font-semibold text-white">Unpaid Subscriptions</h3>
+                            <p class="text-gray-400 mt-1">Restaurant owners who need to pay their subscription</p>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-600">
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Owner</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Amount</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Status</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($unpaidSubscriptions as $subscription)
+                                    <tr class="table-row">
+                                        <td class="py-4 px-4">
+                                            <div class="text-white font-medium">{{ $subscription->user->name }}</div>
+                                            <div class="text-gray-400 text-sm">{{ $subscription->user->email }}</div>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <div class="text-white font-medium">
+                                                ${{ number_format($subscription->amount, 2) }}</div>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <span class="status-badge status-inactive">
+                                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                {{ $subscription->paid_at ? 'Expired' : 'Unpaid' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <div class="flex items-center space-x-2">
+                                                <a href="{{ route('admin.subscription.edit', $subscription) }}"
+                                                    class="action-btn action-edit" title="Edit Cost">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </a>
+                                                <form
+                                                    action="{{ route('admin.subscription.mark-paid', $subscription) }}"
+                                                    method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="action-btn action-enable"
+                                                        title="Mark as Paid">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor"
+                                                            class="w-5 h-5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="border-b border-gray-600">
-                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Owner</th>
-                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Amount</th>
-                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Status</th>
-                                <th class="text-left py-4 px-4 text-gray-300 font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($unpaidSubscriptions as $subscription)
-                                <tr class="table-row">
-                                    <td class="py-4 px-4">
-                                        <div class="text-white font-medium">{{ $subscription->user->name }}</div>
-                                        <div class="text-gray-400 text-sm">{{ $subscription->user->email }}</div>
-                                    </td>
-                                    <td class="py-4 px-4">
-                                        <div class="text-white font-medium">${{ number_format($subscription->amount, 2) }}</div>
-                                    </td>
-                                    <td class="py-4 px-4">
-                                        <span class="status-badge status-inactive">
-                                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                                            {{ $subscription->paid_at ? 'Expired' : 'Unpaid' }}
-                                        </span>
-                                    </td>
-                                    <td class="py-4 px-4">
-                                        <div class="flex items-center space-x-2">
-                                            <a href="{{ route('admin.subscription.edit', $subscription) }}"
-                                               class="action-btn action-edit"
-                                               title="Edit Cost">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
-                                            </a>
-                                            <form action="{{ route('admin.subscription.mark-paid', $subscription) }}" method="POST" class="inline">
-                                                @csrf
-                                                <button type="submit" class="action-btn action-enable" title="Mark as Paid">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
             @endif
         </div>
     </div>
@@ -312,13 +333,14 @@
                 <h3 class="text-2xl font-bold text-white mb-2">{{ __('messages.delete_restaurant_title') }}</h3>
                 <p class="text-gray-300">{{ __('messages.action_cannot_be_undone') }}</p>
             </div>
-            
+
             <div class="modal-body">
                 <div class="warning-box">
                     <div class="flex items-start space-x-3">
                         <i class="fas fa-exclamation-circle text-red-400 text-lg mt-1"></i>
                         <div>
-                            <p class="text-gray-300 font-medium mb-2">{{ __('messages.following_will_be_deleted') }}</p>
+                            <p class="text-gray-300 font-medium mb-2">{{ __('messages.following_will_be_deleted') }}
+                            </p>
                             <ul class="text-gray-400 space-y-1 text-sm">
                                 <li>• {{ __('messages.restaurant_profile_settings') }}</li>
                                 <li>• {{ __('messages.all_menu_categories_items') }}</li>
@@ -328,16 +350,15 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <p class="text-gray-300 mt-6">
-                    {{ __('messages.confirm_delete_restaurant') }} <strong><span id="restaurant-name"></span></strong>?
+                    {{ __('messages.confirm_delete_restaurant') }} <strong><span
+                            id="restaurant-name"></span></strong>?
                 </p>
             </div>
-            
+
             <div class="modal-footer">
-                <button type="button"
-                        onclick="closeDeleteModal()"
-                        class="btn btn-secondary">
+                <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">
                     <i class="fas fa-times mr-2"></i>
                     {{ __('messages.cancel') }}
                 </button>
@@ -430,7 +451,7 @@
             width: 3.5rem;
             height: 3.5rem;
             border-radius: 50%;
-            object-fit: cover;
+            object-fit: contain;
             border: 2px solid var(--border-secondary);
             box-shadow: var(--shadow-md);
         }
@@ -510,6 +531,17 @@
 
         .action-edit:hover {
             background: rgba(245, 158, 11, 0.2);
+            transform: scale(1.1);
+        }
+
+        .action-edit-user {
+            background: rgba(147, 51, 234, 0.1);
+            color: #a855f7;
+            border: 1px solid rgba(147, 51, 234, 0.3);
+        }
+
+        .action-edit-user:hover {
+            background: rgba(147, 51, 234, 0.2);
             transform: scale(1.1);
         }
 
@@ -601,6 +633,7 @@
                 opacity: 0;
                 transform: scale(0.95) translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: scale(1) translateY(0);

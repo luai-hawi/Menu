@@ -89,7 +89,7 @@ class RestaurantController extends Controller
         ]);
 
         $slug = Str::slug($request->name);
-        
+
         // Ensure unique slug
         $counter = 1;
         $originalSlug = $slug;
@@ -101,16 +101,16 @@ class RestaurantController extends Controller
         $restaurant = new Restaurant($request->all());
         $restaurant->slug = $slug;
         $restaurant->user_id = auth()->id();
-        
+
         if ($request->hasFile('logo')) {
             $restaurant->logo = $this->imageService->uploadAndCompressImage(
-                $request->file('logo'), 
-                'logos', 
-                400, 
+                $request->file('logo'),
+                'logos',
+                400,
                 85
             );
         }
-        
+
         $restaurant->save();
 
         return redirect()->route('restaurant.dashboard')->with('success', 'Restaurant created successfully!');
@@ -146,16 +146,16 @@ class RestaurantController extends Controller
         $item = new MenuItem($request->except('image'));
         $item->menu_category_id = $request->category_id;
         $item->sort_order = MenuItem::where('menu_category_id', $request->category_id)->max('sort_order') + 1;
-        
+
         if ($request->hasFile('image')) {
             $item->image = $this->imageService->uploadAndCompressImage(
-                $request->file('image'), 
-                'menu-items', 
-                600, 
+                $request->file('image'),
+                'menu-items',
+                600,
                 80
             );
         }
-        
+
         $item->save();
 
         return redirect()->route('restaurant.dashboard')->with('success', 'Menu item added successfully!');
@@ -171,24 +171,24 @@ class RestaurantController extends Controller
         ]);
 
         $oldImage = $item->image;
-        
+
         $item->fill($request->except('image'));
-        
+
         if ($request->hasFile('image')) {
             // Delete old image
             if ($oldImage) {
                 $this->imageService->deleteImage($oldImage);
             }
-            
+
             // Upload new image
             $item->image = $this->imageService->uploadAndCompressImage(
-                $request->file('image'), 
-                'menu-items', 
-                600, 
+                $request->file('image'),
+                'menu-items',
+                600,
                 80
             );
         }
-        
+
         $item->save();
 
         return redirect()->route('restaurant.dashboard')->with('success', 'Menu item updated successfully!');
@@ -200,9 +200,9 @@ class RestaurantController extends Controller
         if ($item->image) {
             $this->imageService->deleteImage($item->image);
         }
-        
+
         $item->delete();
-        
+
         return redirect()->route('restaurant.dashboard')->with('success', 'Menu item deleted successfully!');
     }
 
@@ -214,9 +214,9 @@ class RestaurantController extends Controller
                 $this->imageService->deleteImage($item->image);
             }
         }
-        
+
         $category->delete();
-        
+
         return redirect()->route('restaurant.dashboard')->with('success', 'Category and all items deleted successfully!');
     }
 
@@ -298,21 +298,6 @@ class RestaurantController extends Controller
                 $updateData['logo'] = null;
             }
 
-            // Check if name changed and regenerate slug if needed
-            if ($restaurant->name !== $request->name) {
-                $slug = Str::slug($request->name);
-
-                // Ensure unique slug
-                $counter = 1;
-                $originalSlug = $slug;
-                while (Restaurant::where('slug', $slug)->where('id', '!=', $restaurant->id)->exists()) {
-                    $slug = $originalSlug . '-' . $counter;
-                    $counter++;
-                }
-
-                $updateData['slug'] = $slug;
-            }
-
             $restaurant->update($updateData);
 
             return redirect()->route('restaurant.dashboard')
@@ -324,86 +309,86 @@ class RestaurantController extends Controller
     }
 
     public function updateSettings(Request $request)
-{
-    $request->validate([
-        'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
-        'remove_background' => 'nullable|in:1',
-        'facebook_url' => 'nullable|url',
-        'instagram_url' => 'nullable|url',
-        'snapchat_url' => 'nullable|url',
-        'whatsapp_url' => 'nullable|url',
-        'twitter_url' => 'nullable|url',
-        'tiktok_url' => 'nullable|url',
-        'primary_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'secondary_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'accent_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'text_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'background_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'card_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'secondary_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'tertiary_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'secondary_text' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'muted_text' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'input_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        'input_border' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-    ]);
+    {
+        $request->validate([
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+            'remove_background' => 'nullable|in:1',
+            'facebook_url' => 'nullable|url',
+            'instagram_url' => 'nullable|url',
+            'snapchat_url' => 'nullable|url',
+            'whatsapp_url' => 'nullable|url',
+            'twitter_url' => 'nullable|url',
+            'tiktok_url' => 'nullable|url',
+            'primary_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'secondary_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'accent_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'text_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'background_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'card_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'secondary_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'tertiary_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'secondary_text' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'muted_text' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'input_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'input_border' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+        ]);
 
-    $restaurant = $this->getSelectedRestaurant();
+        $restaurant = $this->getSelectedRestaurant();
 
-    if ($restaurant) {
-        $updateData = [
-            'facebook_url' => $request->facebook_url,
-            'instagram_url' => $request->instagram_url,
-            'snapchat_url' => $request->snapchat_url,
-            'whatsapp_url' => $request->whatsapp_url,
-            'twitter_url' => $request->twitter_url,
-            'tiktok_url' => $request->tiktok_url,
-            'theme_colors' => [
-                'primary' => $request->primary_color ?? '#667eea',
-                'secondary' => $request->secondary_color ?? '#764ba2',
-                'accent' => $request->accent_color ?? '#4facfe',
-                'text' => $request->text_color ?? '#ffffff',
-                'background' => $request->background_color ?? '#0a0e27',
-                'card' => $request->card_color ?? '#252d56',
-                'secondary_bg' => $request->secondary_bg ?? '#141b3c',
-                'tertiary_bg' => $request->tertiary_bg ?? '#1e2749',
-                'secondary_text' => $request->secondary_text ?? '#e2e8f0',
-                'muted_text' => $request->muted_text ?? '#94a3b8',
-                'input_bg' => $request->input_bg ?? '#1e2749',
-                'input_border' => $request->input_border ?? '#334155',
-            ]
-        ];
+        if ($restaurant) {
+            $updateData = [
+                'facebook_url' => $request->facebook_url,
+                'instagram_url' => $request->instagram_url,
+                'snapchat_url' => $request->snapchat_url,
+                'whatsapp_url' => $request->whatsapp_url,
+                'twitter_url' => $request->twitter_url,
+                'tiktok_url' => $request->tiktok_url,
+                'theme_colors' => [
+                    'primary' => $request->primary_color ?? '#667eea',
+                    'secondary' => $request->secondary_color ?? '#764ba2',
+                    'accent' => $request->accent_color ?? '#4facfe',
+                    'text' => $request->text_color ?? '#ffffff',
+                    'background' => $request->background_color ?? '#0a0e27',
+                    'card' => $request->card_color ?? '#252d56',
+                    'secondary_bg' => $request->secondary_bg ?? '#141b3c',
+                    'tertiary_bg' => $request->tertiary_bg ?? '#1e2749',
+                    'secondary_text' => $request->secondary_text ?? '#e2e8f0',
+                    'muted_text' => $request->muted_text ?? '#94a3b8',
+                    'input_bg' => $request->input_bg ?? '#1e2749',
+                    'input_border' => $request->input_border ?? '#334155',
+                ]
+            ];
 
-        // Handle background image upload/removal
-        if ($request->hasFile('background_image')) {
-            $updateData = [];
-            // Delete old background image if exists
-            if ($restaurant->background_image) {
-                $this->imageService->deleteImage($restaurant->background_image);
-            }
-
-            // Upload new background image
-            $updateData['background_image'] = $this->imageService->uploadAndCompressImage(
-                $request->file('background_image'),
-                'backgrounds',
-                1920,
-                80
-            );
-        } elseif ($request->has('remove_background') && $request->remove_background == '1') {
-            // Remove background image if requested
-            if ($restaurant->background_image) {
+            // Handle background image upload/removal
+            if ($request->hasFile('background_image')) {
                 $updateData = [];
-                $this->imageService->deleteImage($restaurant->background_image);
+                // Delete old background image if exists
+                if ($restaurant->background_image) {
+                    $this->imageService->deleteImage($restaurant->background_image);
+                }
+
+                // Upload new background image
+                $updateData['background_image'] = $this->imageService->uploadAndCompressImage(
+                    $request->file('background_image'),
+                    'backgrounds',
+                    1920,
+                    80
+                );
+            } elseif ($request->has('remove_background') && $request->remove_background == '1') {
+                // Remove background image if requested
+                if ($restaurant->background_image) {
+                    $updateData = [];
+                    $this->imageService->deleteImage($restaurant->background_image);
+                }
+                $updateData['background_image'] = null;
             }
-            $updateData['background_image'] = null;
+            $restaurant->update($updateData);
+
+            return redirect()->route('restaurant.dashboard')
+                ->with('success', 'Settings updated successfully!');
         }
-        $restaurant->update($updateData);
 
         return redirect()->route('restaurant.dashboard')
-            ->with('success', 'Settings updated successfully!');
+            ->with('error', 'Restaurant not found.');
     }
-
-    return redirect()->route('restaurant.dashboard')
-        ->with('error', 'Restaurant not found.');
-}
 }
