@@ -247,7 +247,14 @@
                                                 </div>
 
                                                 <div class="dash-item-actions">
-                                                    <button type="button" @click="editing = true" class="dash-btn-icon dash-btn-icon-blue"
+                                                    <button type="button" 
+                                                            @click.stop="
+                                                                document.getElementById('editItemForm').action = `/item/{{ $item->id }}`;
+                                                                window.dispatchEvent(new CustomEvent('edititem', { 
+                                                                    detail: {{ json_encode(['id' => $item->id, 'name' => $item->name, 'price' => $item->price, 'description' => $item->description ?? '', 'image' => $item->image ?? '', 'category_id' => $item->category_id ?? null, 'optionGroups' => $itemGroupsPayload]) }}
+                                                                }))
+                                                            "
+                                                            class="dash-btn-icon dash-btn-icon-blue"
                                                             :title="'{{ __('messages.edit_menu_item') }}'">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
@@ -262,62 +269,6 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
-
-                                                {{-- Per-item edit modal --}}
-                                                <div x-show="editing"
-                                                     x-cloak x-transition
-                                                     @keydown.escape.window="editing = false"
-                                                     class="dash-modal"
-                                                     @click.self="editing = false">
-                                                    <div class="dash-modal-card">
-                                                        <header class="dash-modal-head">
-                                                            <h3>{{ __('messages.edit_menu_item') }}</h3>
-                                                            <button type="button" @click="editing = false" class="dash-btn-icon">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </header>
-
-                                                        <form action="{{ route('item.update', $item) }}" method="POST"
-                                                              enctype="multipart/form-data"
-                                                              data-ajax data-ajax-reload>
-                                                            @csrf
-                                                            @method('PUT')
-                                                            <div class="dash-modal-body">
-                                                                <div class="dash-field">
-                                                                    <label class="dash-label">{{ __('messages.item_name') }}</label>
-                                                                    <input type="text" name="name" value="{{ $item->name }}"
-                                                                           class="dash-input" required dir="rtl">
-                                                                </div>
-                                                                <div class="dash-field">
-                                                                    <label class="dash-label">{{ __('messages.description_optional') }}</label>
-                                                                    <textarea name="description" class="dash-input" rows="2" dir="rtl">{{ $item->description }}</textarea>
-                                                                </div>
-                                                                <div class="dash-field-row">
-                                                                    <div class="dash-field" style="flex:2">
-                                                                        <label class="dash-label">{{ __('messages.price') }}</label>
-                                                                        <input type="number" step="0.01" min="0" name="price"
-                                                                               value="{{ $item->price }}" class="dash-input" required>
-                                                                    </div>
-                                                                    <div class="dash-field" style="flex:3">
-                                                                        <label class="dash-label">{{ __('messages.update_image_optional') }}</label>
-                                                                        <input type="file" name="image" accept="image/*" class="dash-input dash-input-file">
-                                                                    </div>
-                                                                </div>
-
-                                                                @include('restaurant.partials.option-groups-editor', ['groups' => $itemGroupsPayload])
-                                                            </div>
-                                                            <footer class="dash-modal-foot">
-                                                                <button type="button" @click="editing = false" class="dash-btn dash-btn-ghost">
-                                                                    {{ __('messages.cancel') }}
-                                                                </button>
-                                                                <button type="submit" class="dash-btn dash-btn-primary">
-                                                                    <i class="fas fa-save"></i>
-                                                                    <span>{{ __('messages.update_item') }}</span>
-                                                                </button>
-                                                            </footer>
-                                                        </form>
-                                                    </div>
-                                                </div>
                                             </article>
                                         @endforeach
                                     </div>
@@ -327,6 +278,66 @@
                     </div>
                 @endif
             </section>
+
+            {{-- Global Edit Modal --}}
+            <div x-data="{ showEditModal: false, currentItem: { id: null, name: '', price: 0, description: '', image: '', category_id: null, optionGroups: [] } }"
+                 @edititem.window="showEditModal = true; currentItem = $event.detail">
+                <div x-show="showEditModal"
+                     x-cloak
+                     @keydown.escape.window="showEditModal = false"
+                     class="dash-modal"
+                     @click="showEditModal = false">
+                    <div class="dash-modal-card" @click.stop>
+                        <header class="dash-modal-head">
+                            <h3>{{ __('messages.edit_menu_item') }}</h3>
+                            <button type="button" @click="showEditModal = false" class="dash-btn-icon">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </header>
+
+                        <form id="editItemForm" method="POST"
+                              enctype="multipart/form-data"
+                              data-ajax data-ajax-reload>
+                            @csrf
+                            @method('PUT')
+                            <div class="dash-modal-body">
+                                <div class="dash-field">
+                                    <label class="dash-label">{{ __('messages.item_name') }}</label>
+                                    <input type="text" name="name" x-model="currentItem.name"
+                                           class="dash-input" required dir="rtl">
+                                </div>
+                                <div class="dash-field">
+                                    <label class="dash-label">{{ __('messages.description_optional') }}</label>
+                                    <textarea name="description" x-model="currentItem.description" class="dash-input" rows="2" dir="rtl"></textarea>
+                                </div>
+                                <div class="dash-field-row">
+                                    <div class="dash-field" style="flex:2">
+                                        <label class="dash-label">{{ __('messages.price') }}</label>
+                                        <input type="number" step="0.01" min="0" name="price"
+                                               x-model="currentItem.price" class="dash-input" required>
+                                    </div>
+                                    <div class="dash-field" style="flex:3">
+                                        <label class="dash-label">{{ __('messages.update_image_optional') }}</label>
+                                        <input type="file" name="image" accept="image/*" class="dash-input dash-input-file">
+                                    </div>
+                                </div>
+
+                                {{-- Option Groups Editor --}}
+                                @include('restaurant.partials.option-groups-editor', ['groups' => []])
+                            </div>
+                            <footer class="dash-modal-foot">
+                                <button type="button" @click="showEditModal = false" class="dash-btn dash-btn-ghost">
+                                    {{ __('messages.cancel') }}
+                                </button>
+                                <button type="submit" class="dash-btn dash-btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    <span>{{ __('messages.update_item') }}</span>
+                                </button>
+                            </footer>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
             {{-- ==================== PROFILE TAB ==================== --}}
             <section x-show="tab === 'profile'" x-cloak role="tabpanel" class="dash-tab-panel">
