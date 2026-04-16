@@ -294,16 +294,25 @@
             const selectedLang = this.value;
 
             // Set cookie to remember language preference
-            document.cookie = "app_locale=" + selectedLang + "; path=/; max-age=31536000"; // 1 year
+            const expires = new Date();
+            expires.setFullYear(expires.getFullYear() + 1);
+            document.cookie = "app_locale=" + selectedLang + "; path=/; expires=" + expires.toUTCString() + "; SameSite=Lax";
 
-            // Reload the page to apply the new language
-            window.location.reload();
+            // Build URL with language query parameter
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', selectedLang);
+
+            // Reload the page with language parameter
+            window.location.href = url.toString();
         });
 
-        // Set initial language from cookie or default
+        // Set initial language from cookie, query param, or default
         document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryLang = urlParams.get('lang');
+            
             const cookies = document.cookie.split(';');
-            let appLocale = 'ar'; // default
+            let appLocale = 'en';
 
             for (let cookie of cookies) {
                 const [name, value] = cookie.trim().split('=');
@@ -313,7 +322,11 @@
                 }
             }
 
-            // Update the select element
+            // Override with query param if present
+            if (queryLang && ['en', 'ar'].includes(queryLang)) {
+                appLocale = queryLang;
+            }
+
             const select = document.getElementById('language-select');
             if (select) {
                 select.value = appLocale;

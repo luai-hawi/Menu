@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" class="dark">
+@php
+    $menuLocale = app()->getLocale();
+    $menuDir    = $menuLocale === 'ar' ? 'rtl' : 'ltr';
+@endphp
+<html lang="{{ $menuLocale }}" dir="{{ $menuDir }}" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +11,10 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    @if($menuLocale === 'ar')
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <style>body { font-family: 'Cairo', 'Inter', sans-serif !important; }</style>
+    @endif
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -242,6 +250,92 @@
             align-items: center;
             margin-top: auto;
         }
+
+        /* ---- Option groups on product card ---- */
+        .options-block {
+            margin: 0.75rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .option-group {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-primary);
+            border-radius: 10px;
+            padding: 0.75rem;
+        }
+        .option-group-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+        .required-tag {
+            font-size: 0.65rem;
+            background: rgba(245, 87, 108, 0.15);
+            border: 1px solid rgba(245, 87, 108, 0.4);
+            color: #fca5a5;
+            padding: 1px 6px;
+            border-radius: 999px;
+        }
+        .optional-tag, .constraints-tag {
+            font-size: 0.65rem;
+            background: rgba(148, 163, 184, 0.15);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: #cbd5e1;
+            padding: 1px 6px;
+            border-radius: 999px;
+        }
+        .option-choice {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            font-size: 0.85rem;
+        }
+        .option-choice:hover       { background: rgba(255, 255, 255, 0.04); }
+        .option-chosen             { background: rgba(102, 126, 234, 0.15); }
+        .option-choice input       { accent-color: #6366f1; }
+        .option-choice-name        { color: var(--text-primary); }
+        .option-choice-note {
+            grid-column: 2 / 3;
+            grid-row: 2;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .option-choice-price       {
+            font-weight: 600;
+            color: #86efac;
+            font-variant-numeric: tabular-nums;
+        }
+        .option-group-error {
+            margin-top: 0.4rem;
+            padding: 0.35rem 0.55rem;
+            background: rgba(245, 87, 108, 0.1);
+            border-inline-start: 3px solid #f5576c;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #fca5a5;
+        }
+        .price-block { display: flex; flex-direction: column; align-items: flex-start; }
+        .base-price-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        /* RTL */
+        html[dir="rtl"] .option-choice          { direction: rtl; }
+        html[dir="rtl"] .option-choice-price    { font-variant-numeric: tabular-nums; }
 
         .price {
             font-size: 1.75rem !important;
@@ -883,18 +977,46 @@
                     
                     <div class="responsive-grid">
                         @foreach($category->activeMenuItems as $item)
-                            <div class="menu-item-card animate-fade-in-up" data-item-id="{{ $item->id }}">
+                            @php
+                                // Precompute locale-aware payload for Alpine so the JS doesn't duplicate logic.
+                                $itemOptionsPayload = $item->optionGroups->map(function ($g) use ($menuLocale) {
+                                    return [
+                                        'id'          => $g->id,
+                                        'type'        => $g->group_type,
+                                        'name'        => $g->nameFor($menuLocale),
+                                        'min'         => (int) $g->min_choices,
+                                        'max'         => (int) $g->max_choices,
+                                        'required'    => (bool) $g->is_required,
+                                        'options'     => $g->activeOptions->map(fn ($o) => [
+                                            'id'          => $o->id,
+                                            'name'        => $o->nameFor($menuLocale),
+                                            'note'        => $o->noteFor($menuLocale),
+                                            'price_delta' => (float) $o->price_delta,
+                                        ])->values()->all(),
+                                    ];
+                                })->filter(fn ($g) => count($g['options']) > 0)->values()->all();
+                            @endphp
+                            <div
+                                class="menu-item-card animate-fade-in-up"
+                                data-item-id="{{ $item->id }}"
+                                x-data="menuItemCard({
+                                    id: {{ $item->id }},
+                                    name: @js($item->name),
+                                    basePrice: {{ (float) $item->price }},
+                                    groups: @js($itemOptionsPayload)
+                                })"
+                            >
                                 <!-- Item Image -->
                                 @if($item->image)
-                                    <img src="{{ asset('storage/' . $item->image) }}" 
-                                         alt="{{ $item->name }}" 
+                                    <img src="{{ asset('storage/' . $item->image) }}"
+                                         alt="{{ $item->name }}"
                                          class="menu-image">
                                 @else
                                     <div class="menu-image-placeholder">
                                         <i class="fas fa-utensils text-white text-4xl opacity-50"></i>
                                     </div>
                                 @endif
-                                
+
                                 <!-- Item Content -->
                                 <div class="menu-item-content">
                                     <div class="menu-item-header">
@@ -903,19 +1025,67 @@
                                             <p class="menu-item-description">{{ $item->description }}</p>
                                         @endif
                                     </div>
-                                    
+
+                                    @if(count($itemOptionsPayload) > 0)
+                                        <div class="options-block">
+                                            <template x-for="group in groups" :key="group.id">
+                                                <div class="option-group">
+                                                    <div class="option-group-title">
+                                                        <span x-text="group.name"></span>
+                                                        <small x-show="group.required" class="required-tag">
+                                                            {{ __('messages.common.required') }}
+                                                        </small>
+                                                        <small x-show="!group.required && group.type === 'MULTIPLE'" class="optional-tag">
+                                                            {{ __('messages.common.optional') }}
+                                                        </small>
+                                                        <small x-show="group.type === 'MULTIPLE' && (group.min > 0 || group.max > 0)"
+                                                               class="constraints-tag"
+                                                               x-text="constraintHint(group)"></small>
+                                                    </div>
+
+                                                    <template x-for="opt in group.options" :key="opt.id">
+                                                        <label class="option-choice"
+                                                               :class="{ 'option-chosen': isSelected(group, opt) }">
+                                                            <input
+                                                                :type="group.type === 'SINGLE' ? 'radio' : 'checkbox'"
+                                                                :name="`g-${group.id}-item-${id}`"
+                                                                :value="opt.id"
+                                                                :checked="isSelected(group, opt)"
+                                                                @change="toggleOption(group, opt, $event)"
+                                                            >
+                                                            <span class="option-choice-name" x-text="opt.name"></span>
+                                                            <span class="option-choice-note" x-show="opt.note" x-text="opt.note"></span>
+                                                            <span class="option-choice-price" x-text="formatDelta(opt.price_delta)"></span>
+                                                        </label>
+                                                    </template>
+
+                                                    <p class="option-group-error" x-show="errorFor(group)" x-text="errorFor(group)"></p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    @endif
+
                                     <div class="menu-item-footer">
-                                        <div class="price">{{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</div>
-                                        
+                                        <div class="price-block">
+                                            @if(count($itemOptionsPayload) > 0)
+                                                <small class="base-price-label">{{ __('messages.products.base_price') }}: {{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</small>
+                                                <div class="price" x-text="currency + computedPrice.toFixed(2)"></div>
+                                            @else
+                                                <div class="price">{{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</div>
+                                            @endif
+                                        </div>
+
                                         @if($restaurant->whatsapp_orders_enabled && $restaurant->whatsapp_number)
                                             <div class="quantity-control flex flex-col items-center">
-                                                <button class="quantity-btn" onclick="changeQuantity({{ $item->id }}, 1)">+</button>
-                                                <input type="number" class="quantity-input text-white w-full" value="0" min="0" max="999" 
-                                                       id="qty-{{ $item->id }}" 
-                                                       onchange="updateQuantity({{ $item->id }}, this.value)"
-                                                       data-price="{{ $item->price }}"
-                                                       data-name="{{ $item->name }}">
-                                                <button class="quantity-btn" onclick="changeQuantity({{ $item->id }}, -1)">-</button>
+                                                <button type="button" class="quantity-btn"
+                                                        @click="changeQuantity(1)"
+                                                        :disabled="!canAddToCart()">+</button>
+                                                <input type="number" class="quantity-input text-white w-full"
+                                                       :value="quantity" min="0" max="999"
+                                                       @change="setQuantity($event.target.value)"
+                                                       id="qty-{{ $item->id }}">
+                                                <button type="button" class="quantity-btn"
+                                                        @click="changeQuantity(-1)">-</button>
                                             </div>
                                         @endif
                                     </div>
@@ -1010,92 +1180,269 @@
 
     @if($restaurant->whatsapp_orders_enabled && $restaurant->whatsapp_number)
     <script>
-        let cart = {};
+        /*
+         * Cart model
+         * ----------
+         * Each entry is keyed by `itemId|sortedOptionIds.join(",")` so that
+         * the SAME dish with different option selections is treated as a
+         * separate line item (customer expectation: 1x Large Cheese vs 1x Small).
+         */
         const whatsappNumber = "{{ $restaurant->whatsapp_number }}";
         const restaurantName = "{{ $restaurant->name }}";
-
-        // Translation strings
         const translations = {
-            newOrderFrom: "{{ __('messages.new_order_from', ['restaurant' => $restaurant->name]) }}",
-            orderDetails: "{{ __('messages.order_details') }}",
-            total: "{{ __('messages.total', ['total' => ':total']) }}",
-            totalLabel: "{{ __('messages.total_label') }}",
-            deliveryLocation: "{{ __('messages.delivery_location') }}",
-            additionalNotesLabel: "{{ __('messages.additional_notes_label') }}",
-            thankYou: "{{ __('messages.thank_you') }}",
-            currencySymbol: "{{ __('messages.currency_symbol') }}"
+            newOrderFrom: @js(__('messages.new_order_from', ['restaurant' => $restaurant->name])),
+            orderDetails: @js(__('messages.order_details')),
+            total: @js(__('messages.total', ['total' => ':total'])),
+            totalLabel: @js(__('messages.total_label')),
+            deliveryLocation: @js(__('messages.delivery_location')),
+            additionalNotesLabel: @js(__('messages.additional_notes_label')),
+            thankYou: @js(__('messages.thank_you')),
+            currencySymbol: @js(__('messages.currency_symbol')),
+            required: @js(__('messages.common.required')),
+            minSelections: @js(__('messages.errors.min_selections_required', ['min' => ':n'])),
+            maxSelections: @js(__('messages.errors.max_selections_exceeded', ['max' => ':n'])),
+            requiredGroupMissing: @js(__('messages.errors.required_group_not_answered', ['group' => ':g'])),
+            free: @js(__('messages.products.free'))
         };
 
-        function changeQuantity(itemId, change) {
-            const input = document.getElementById(`qty-${itemId}`);
-            const currentValue = parseInt(input.value) || 0;
-            const newValue = Math.max(0, Math.min(99, currentValue + change));
-            input.value = newValue;
-            updateQuantity(itemId, newValue);
+        // Global cart store on window so all menuItemCard instances share state.
+        window.__menuCart = window.__menuCart || {};
+
+        function cartKeyFor(itemId, optionIds) {
+            const sorted = [...optionIds].sort((a, b) => a - b).join(',');
+            return `${itemId}|${sorted}`;
         }
 
-        function updateQuantity(itemId, quantity) {
-            const input = document.getElementById(`qty-${itemId}`);
-            const price = parseFloat(input.dataset.price);
-            const name = input.dataset.name;
-            
-            quantity = Math.max(0, Math.min(99, parseInt(quantity) || 0));
-            input.value = quantity;
-            
-            if (quantity > 0) {
-                cart[itemId] = {
-                    name: name,
-                    price: price,
-                    quantity: quantity,
-                    total: price * quantity
-                };
-            } else {
-                delete cart[itemId];
-            }
-            
-            updateOrderSummary();
-        }
-
-        function updateOrderSummary() {
-            const totalItems = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
-            const orderSummary = document.getElementById('orderSummary');
-            const totalItemsSpan = document.getElementById('totalItems');
-            
+        function refreshOrderSummaryBar() {
+            const cart = window.__menuCart;
+            const totalItems = Object.values(cart).reduce((sum, it) => sum + it.quantity, 0);
+            const bar = document.getElementById('orderSummary');
+            const totalSpan = document.getElementById('totalItems');
+            if (!bar || !totalSpan) return;
             if (totalItems > 0) {
-                totalItemsSpan.textContent = `${totalItems} item${totalItems > 1 ? 's' : ''}`;
-                orderSummary.classList.add('visible');
+                totalSpan.textContent = `${totalItems} ` + @js(__('messages.items'));
+                bar.classList.add('visible');
             } else {
-                orderSummary.classList.remove('visible');
+                bar.classList.remove('visible');
             }
         }
+
+        /**
+         * Alpine component for each product card.
+         * Handles option selection, dynamic price, min/max validation and cart sync.
+         */
+        window.menuItemCard = function menuItemCard({ id, name, basePrice, groups }) {
+            return {
+                id,
+                name,
+                basePrice: Number(basePrice),
+                groups: groups || [],
+                currency: translations.currencySymbol,
+                // Selected option IDs per group id
+                selected: {},
+                quantity: 0,
+
+                init() {
+                    // Pre-tick the first option of single-select required groups
+                    // to keep the UI usable from the start.
+                    this.groups.forEach(g => {
+                        if (g.type === 'SINGLE' && g.required && g.options.length) {
+                            this.selected[g.id] = [g.options[0].id];
+                        } else {
+                            this.selected[g.id] = [];
+                        }
+                    });
+                },
+
+                get allSelectedIds() {
+                    return Object.values(this.selected).flat();
+                },
+
+                get computedPrice() {
+                    let total = this.basePrice;
+                    this.groups.forEach(g => {
+                        (this.selected[g.id] || []).forEach(optId => {
+                            const opt = g.options.find(o => o.id === optId);
+                            if (opt) total += Number(opt.price_delta);
+                        });
+                    });
+                    return Math.max(0, total);
+                },
+
+                formatDelta(delta) {
+                    const n = Number(delta);
+                    if (n === 0) return translations.free;
+                    const sign = n > 0 ? '+' : '−';
+                    return `${sign}${this.currency}${Math.abs(n).toFixed(2)}`;
+                },
+
+                isSelected(group, opt) {
+                    return (this.selected[group.id] || []).includes(opt.id);
+                },
+
+                toggleOption(group, opt, event) {
+                    const current = this.selected[group.id] || [];
+                    if (group.type === 'SINGLE') {
+                        this.selected[group.id] = [opt.id];
+                    } else {
+                        if (event.target.checked) {
+                            if (!current.includes(opt.id)) current.push(opt.id);
+                        } else {
+                            const idx = current.indexOf(opt.id);
+                            if (idx > -1) current.splice(idx, 1);
+                        }
+                        this.selected[group.id] = [...current];
+                    }
+                    // If this item already has a quantity>0 we need to remap its cart key
+                    // because the option set changed.
+                    if (this.quantity > 0) {
+                        this.syncCart(true);
+                    }
+                },
+
+                constraintHint(group) {
+                    if (group.type !== 'MULTIPLE') return '';
+                    if (group.min > 0 && group.max > 0 && group.min === group.max) {
+                        return `(${group.min})`;
+                    }
+                    if (group.min > 0 && group.max > 0) {
+                        return `(${group.min}-${group.max})`;
+                    }
+                    if (group.max > 0) {
+                        return `(≤ ${group.max})`;
+                    }
+                    if (group.min > 0) {
+                        return `(≥ ${group.min})`;
+                    }
+                    return '';
+                },
+
+                errorFor(group) {
+                    const chosen = (this.selected[group.id] || []).length;
+                    if (group.required && chosen < 1) {
+                        return translations.requiredGroupMissing.replace(':g', group.name);
+                    }
+                    if (group.type === 'MULTIPLE') {
+                        if (group.min > 0 && chosen < group.min) {
+                            return translations.minSelections.replace(':n', group.min);
+                        }
+                        if (group.max > 0 && chosen > group.max) {
+                            return translations.maxSelections.replace(':n', group.max);
+                        }
+                    }
+                    return null;
+                },
+
+                firstError() {
+                    for (const g of this.groups) {
+                        const e = this.errorFor(g);
+                        if (e) return e;
+                    }
+                    return null;
+                },
+
+                canAddToCart() {
+                    return this.firstError() === null;
+                },
+
+                changeQuantity(delta) {
+                    const err = this.firstError();
+                    if (err && this.quantity === 0 && delta > 0) {
+                        alert(err);
+                        return;
+                    }
+                    this.setQuantity(this.quantity + delta);
+                },
+
+                setQuantity(value) {
+                    const n = Math.max(0, Math.min(99, parseInt(value) || 0));
+                    this.quantity = n;
+                    this.syncCart(false);
+                },
+
+                syncCart(optionChange) {
+                    // Remove any cart entries for this item whose option set
+                    // differs from the current selection (when options changed).
+                    const currentIds = this.allSelectedIds;
+                    const key = cartKeyFor(this.id, currentIds);
+
+                    if (optionChange) {
+                        Object.keys(window.__menuCart).forEach(k => {
+                            if (k.startsWith(`${this.id}|`) && k !== key) {
+                                delete window.__menuCart[k];
+                            }
+                        });
+                    }
+
+                    if (this.quantity > 0) {
+                        const unit = this.computedPrice;
+                        // Build human-readable option chips for WhatsApp / modal.
+                        const selectedChips = [];
+                        this.groups.forEach(g => {
+                            (this.selected[g.id] || []).forEach(optId => {
+                                const opt = g.options.find(o => o.id === optId);
+                                if (opt) {
+                                    selectedChips.push({
+                                        group: g.name,
+                                        name: opt.name,
+                                        delta: Number(opt.price_delta),
+                                    });
+                                }
+                            });
+                        });
+
+                        window.__menuCart[key] = {
+                            itemId: this.id,
+                            name: this.name,
+                            basePrice: this.basePrice,
+                            unitPrice: unit,
+                            quantity: this.quantity,
+                            total: unit * this.quantity,
+                            options: selectedChips,
+                        };
+                    } else {
+                        delete window.__menuCart[key];
+                    }
+
+                    refreshOrderSummaryBar();
+                },
+            };
+        };
 
         function openOrderModal() {
+            const cart = window.__menuCart;
             const orderItems = document.getElementById('orderItems');
             const modal = document.getElementById('orderModal');
-            
+
             let html = '';
             let grandTotal = 0;
-            
+
             Object.values(cart).forEach(item => {
+                const optsText = item.options.length
+                    ? '<div class="text-gray-400 text-xs mt-1">'
+                        + item.options.map(o => `• ${o.group}: ${o.name}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${translations.currencySymbol}${Math.abs(o.delta).toFixed(2)})` : ''}`).join('<br>')
+                        + '</div>'
+                    : '';
                 html += `
                     <div class="order-item">
                         <div>
                             <div class="font-semibold text-white">${item.name}</div>
-                            <div class="text-gray-400 text-sm">${translations.currencySymbol}${item.price.toFixed(2)} x ${item.quantity}</div>
+                            <div class="text-gray-400 text-sm">${translations.currencySymbol}${item.unitPrice.toFixed(2)} x ${item.quantity}</div>
+                            ${optsText}
                         </div>
                         <div class="font-bold text-green-400">${translations.currencySymbol}${item.total.toFixed(2)}</div>
                     </div>
                 `;
                 grandTotal += item.total;
             });
-            
+
             html += `
                 <div class="order-item bg-gray-700 border-2 border-green-500">
                     <div class="font-bold text-white text-lg">${translations.totalLabel}</div>
                     <div class="font-bold text-green-400 text-xl">${translations.currencySymbol}${grandTotal.toFixed(2)}</div>
                 </div>
             `;
-            
+
             orderItems.innerHTML = html;
             modal.classList.add('visible');
             document.body.style.overflow = 'hidden';
@@ -1105,8 +1452,6 @@
             const modal = document.getElementById('orderModal');
             modal.classList.remove('visible');
             document.body.style.overflow = 'auto';
-            
-            // Clear form
             document.getElementById('orderNotes').value = '';
             document.getElementById('orderLocation').value = '';
         }
@@ -1114,48 +1459,42 @@
         function sendWhatsAppOrder() {
             const notes = document.getElementById('orderNotes').value;
             const location = document.getElementById('orderLocation').value;
-            
             if (!location.trim()) {
                 alert('Please provide your location for delivery.');
                 return;
             }
-            
-            let message = `${translations.newOrderFrom}\n\n`;
-            message += `${translations.orderDetails}\n`;
-            
+
+            let message = `${translations.newOrderFrom}\n\n${translations.orderDetails}\n`;
             let grandTotal = 0;
+            const cart = window.__menuCart;
             Object.values(cart).forEach(item => {
-                message += `• ${item.name} x${item.quantity} - ${item.total.toFixed(2)}\n`;
+                message += `• ${item.name} x${item.quantity} - ${translations.currencySymbol}${item.total.toFixed(2)}\n`;
+                item.options.forEach(o => {
+                    message += `    ↳ ${o.group}: ${o.name}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${translations.currencySymbol}${Math.abs(o.delta).toFixed(2)})` : ''}\n`;
+                });
                 grandTotal += item.total;
             });
-            
-            message += `\n${translations.total.replace(':total', grandTotal.toFixed(2))}\n\n`;
-            message += `${translations.deliveryLocation}\n${location}\n\n`;
 
+            message += `\n${translations.total.replace(':total', translations.currencySymbol + grandTotal.toFixed(2))}\n\n`;
+            message += `${translations.deliveryLocation}\n${location}\n\n`;
             if (notes.trim()) {
                 message += `${translations.additionalNotesLabel}\n${notes}\n\n`;
             }
+            message += translations.thankYou;
 
-            message += `${translations.thankYou}`;
-            
-            const encodedMessage = encodeURIComponent(message);
-            const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodedMessage}`;
-            
-            // Open WhatsApp
+            const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
-            
-            // Close modal and reset cart
+
             closeOrderModal();
-            
-            // Reset all quantities
-            Object.keys(cart).forEach(itemId => {
-                document.getElementById(`qty-${itemId}`).value = 0;
+            // Clear cart + reset quantity inputs.
+            Object.keys(window.__menuCart).forEach(k => delete window.__menuCart[k]);
+            document.querySelectorAll('.quantity-input').forEach(inp => { inp.value = 0; });
+            document.querySelectorAll('.menu-item-card').forEach(card => {
+                if (card.__x) { card.__x.$data.quantity = 0; }
             });
-            cart = {};
-            updateOrderSummary();
+            refreshOrderSummaryBar();
         }
 
-        // Close modal when clicking outside
         document.getElementById('orderModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeOrderModal();
@@ -1190,16 +1529,25 @@
             const selectedLang = this.value;
 
             // Set cookie to remember language preference
-            document.cookie = "app_locale=" + selectedLang + "; path=/; max-age=31536000"; // 1 year
+            const expires = new Date();
+            expires.setFullYear(expires.getFullYear() + 1);
+            document.cookie = "app_locale=" + selectedLang + "; path=/; expires=" + expires.toUTCString() + "; SameSite=Lax";
 
-            // Reload the page to apply the new language
-            window.location.reload();
+            // Build URL with language query parameter
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', selectedLang);
+
+            // Reload the page with language parameter
+            window.location.href = url.toString();
         });
 
-        // Set initial language from cookie or default
+        // Set initial language from cookie, query param, or default
         document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryLang = urlParams.get('lang');
+            
             const cookies = document.cookie.split(';');
-            let appLocale = 'ar'; // default
+            let appLocale = 'en';
 
             for (let cookie of cookies) {
                 const [name, value] = cookie.trim().split('=');
@@ -1207,6 +1555,11 @@
                     appLocale = value;
                     break;
                 }
+            }
+
+            // Override with query param if present
+            if (queryLang && ['en', 'ar'].includes(queryLang)) {
+                appLocale = queryLang;
             }
 
             // Update the select element

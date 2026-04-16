@@ -1,909 +1,1069 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h2 class="font-semibold text-xl text-white leading-tight">
+        <div class="dash-header">
+            <div class="dash-header-main">
+                <h2 class="dash-title">
+                    <i class="fas fa-store"></i>
                     {{ __('messages.restaurant_dashboard') }}
                 </h2>
                 @if($restaurant)
-                    <p class="text-gray-400 mt-1">{{ $restaurant->name }}</p>
-                @endif
-
-                <!-- Restaurant Selector -->
-                @if($restaurants && $restaurants->count() > 1)
-                    <div class="mt-3">
-                        <form method="POST" action="{{ route('restaurant.select') }}" class="inline">
-                            @csrf
-                            <label for="restaurant-select" class="text-sm text-gray-300 mr-2">{{ __('messages.select_restaurant') }}:</label>
-                            <select name="restaurant_id" id="restaurant-select" onchange="this.form.submit()" class="bg-gray-700 text-white border border-gray-600 rounded px-3 py-1 text-sm">
-                                @foreach($restaurants as $r)
-                                    <option value="{{ $r->id }}" {{ $r->id === $restaurant->id ? 'selected' : '' }}>
-                                        {{ $r->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </form>
-                    </div>
+                    <p class="dash-subtitle">{{ $restaurant->name }}</p>
                 @endif
             </div>
+
+            @if($restaurants && $restaurants->count() > 1)
+                <form method="POST" action="{{ route('restaurant.select') }}" class="dash-restaurant-switcher" data-ajax data-ajax-reload>
+                    @csrf
+                    <label for="restaurant-select" class="sr-only">{{ __('messages.select_restaurant') }}</label>
+                    <select name="restaurant_id" id="restaurant-select" onchange="this.form.requestSubmit()">
+                        @foreach($restaurants as $r)
+                            <option value="{{ $r->id }}" {{ $r->id === $restaurant->id ? 'selected' : '' }}>
+                                {{ $r->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+            @endif
+
             @if($restaurant)
-                <a href="{{ route('menu.show', $restaurant->slug) }}" target="_blank"
-                   class="btn btn-primary">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-1M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
-                    {{ __('messages.view_public_menu') }}
+                <a href="{{ route('menu.show', $restaurant->slug) }}" target="_blank" class="dash-view-menu">
+                    <i class="fas fa-external-link-alt"></i>
+                    <span>{{ __('messages.view_public_menu') }}</span>
                 </a>
             @endif
         </div>
     </x-slot>
 
-    @if($restaurant)
-        <!-- Restaurant Profile Settings -->
-        <div class="card mb-6 max-w-3xl mt-6 mx-auto">
-            <h3 class="text-xl font-semibold text-white mb-6">{{ __('messages.restaurant_profile') }}</h3>
+    @if(!$restaurant)
+        <div class="dash-wrap">
+            <div class="dash-setup-card">
+                <div class="dash-setup-icon">🏪</div>
+                <h3>{{ __('messages.setup_your_restaurant') }}</h3>
+                <p>{{ __('messages.create_restaurant_profile') }}</p>
+                <a href="{{ route('restaurant.create') }}" class="dash-btn dash-btn-success">
+                    <i class="fas fa-plus"></i>
+                    {{ __('messages.create_restaurant') }}
+                </a>
+            </div>
+        </div>
+    @else
+        <div class="dash-wrap" x-data="{ tab: localStorage.getItem('dashTab') || 'menu' }"
+             x-init="$watch('tab', v => localStorage.setItem('dashTab', v))">
 
-            <form action="{{ route('restaurant.update.profile') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-
-                <!-- Restaurant Name -->
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.restaurant_name') }}</label>
-                    <input type="text" name="name" value="{{ $restaurant->name }}"
-                           class="form-input" required>
-                    <p class="text-gray-400 text-sm mt-1">{{ __('messages.restaurant_name_help') }}</p>
-                </div>
-
-                <!-- Restaurant Description -->
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.restaurant_description') }}</label>
-                    <textarea name="description" rows="4" class="form-input"
-                              placeholder="{{ __('messages.restaurant_description_placeholder') }}">{{ $restaurant->description }}</textarea>
-                    <p class="text-gray-400 text-sm mt-1">{{ __('messages.restaurant_description_help') }}</p>
-                </div>
-
-                <!-- Restaurant Logo -->
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.restaurant_logo') }}</label>
-                    <input type="file" name="logo" accept="image/*" class="form-input">
-                    <p class="text-gray-400 text-sm mt-1">{{ __('messages.logo_upload_help') }}</p>
-                    @if($restaurant->logo)
-                        <div class="mt-3">
-                            <p class="text-gray-300 text-sm">{{ __('messages.current_logo') }}:</p>
-                            <img src="{{ asset('storage/' . $restaurant->logo) }}" alt="Current logo" class="mt-2 max-w-xs h-20 object-contain rounded-lg border border-gray-600 bg-white p-2">
-                            <div class="mt-2">
-                                <label class="inline-flex items-center">
-                                    <input type="checkbox" name="remove_logo" value="1" class="rounded border-gray-600 text-blue-600 focus:ring-blue-500">
-                                    <span class="ml-2 text-sm text-gray-300">{{ __('messages.remove_logo') }}</span>
-                                </label>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save mr-2"></i>
-                    {{ __('messages.save_profile') }}
+            {{-- ==================== TAB BAR ==================== --}}
+            <nav class="dash-tabs" role="tablist" aria-label="{{ __('messages.restaurant_dashboard') }}">
+                <button type="button" role="tab" class="dash-tab" :class="{ 'dash-tab-active': tab === 'menu' }" @click="tab = 'menu'">
+                    <i class="fas fa-utensils"></i>
+                    <span>{{ __('messages.products.menu_settings') }}</span>
                 </button>
-            </form>
-        </div>
+                <button type="button" role="tab" class="dash-tab" :class="{ 'dash-tab-active': tab === 'profile' }" @click="tab = 'profile'">
+                    <i class="fas fa-id-card"></i>
+                    <span>{{ __('messages.restaurant_profile') }}</span>
+                </button>
+                <button type="button" role="tab" class="dash-tab" :class="{ 'dash-tab-active': tab === 'whatsapp' }" @click="tab = 'whatsapp'">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>{{ __('messages.whatsapp_orders') }}</span>
+                </button>
+                <button type="button" role="tab" class="dash-tab" :class="{ 'dash-tab-active': tab === 'theme' }" @click="tab = 'theme'">
+                    <i class="fas fa-palette"></i>
+                    <span>{{ __('messages.theme_colors') }}</span>
+                </button>
+            </nav>
 
-        <!-- Quick Actions - Moved to Top -->
-        <div class="responsive-grid mb-8">
-            <!-- Add Category Card -->
-            <div class="quick-action-card">
-                <div class="flex items-center mb-4">
-                    <div class="icon-wrapper icon-blue">
-                        <i class="fas fa-tags text-white"></i>
+            {{-- ==================== MENU TAB ==================== --}}
+            <section x-show="tab === 'menu'" x-cloak role="tabpanel" class="dash-tab-panel">
+
+                {{-- Add category + Add item — mobile-friendly 2-column, stacks on mobile --}}
+                <div class="dash-grid-two">
+                    <div class="dash-card">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-tags"></i></div>
+                            <h3>{{ __('messages.add_new_category') }}</h3>
+                        </header>
+                        <form action="{{ route('category.store') }}" method="POST" data-ajax data-ajax-reload>
+                            @csrf
+                            <div class="dash-field">
+                                <input type="text" name="name" required
+                                       placeholder="{{ __('messages.category_name_placeholder') }}"
+                                       class="dash-input">
+                            </div>
+                            <button type="submit" class="dash-btn dash-btn-primary dash-btn-block">
+                                <i class="fas fa-plus"></i>
+                                <span>{{ __('messages.add_category_btn') }}</span>
+                            </button>
+                        </form>
                     </div>
-                    <h3 class="text-lg font-semibold text-white">{{ __('messages.add_new_category') }}</h3>
-                </div>
-                <form action="{{ route('category.store') }}" method="POST">
-                    @csrf
-                    <div class="form-group">
-                        <input type="text" name="name" placeholder="{{ __('messages.category_name_placeholder') }}"
-                               class="form-input" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full">
-                        <i class="fas fa-plus w-4 h-4"></i>
-                        {{ __('messages.add_category_btn') }}
-                    </button>
-                </form>
-            </div>
 
-            <!-- Add Menu Item Card -->
-            <div class="quick-action-card">
-                <div class="flex items-center mb-4">
-                    <div class="icon-wrapper icon-green">
-                        <i class="fas fa-plus text-white"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold text-white">{{ __('messages.add_new_menu_item') }}</h3>
-                </div>
-                <form action="{{ route('item.store') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="space-y-4">
-                        <div class="form-group">
-                            <select name="category_id" class="form-input" required>
-                                <option value="">{{ __('messages.select_category') }}</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <input type="text" name="name" placeholder="{{ __('messages.item_name') }}" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <textarea name="description" placeholder="{{ __('messages.description_optional') }}"
-                                      class="form-input" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <input type="number" step="0.01" name="price" placeholder="{{ __('messages.price') }}"
-                                   class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">{{ __('messages.item_image_optional') }}</label>
-                            <input type="file" name="image" accept="image/*" class="form-input">
-                        </div>
-                        <button type="submit" class="btn btn-success w-full">
-                            <i class="fas fa-plus w-4 h-4"></i>
-                            {{ __('messages.add_menu_item_btn') }}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    <div class="dash-card">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-green"><i class="fas fa-plus"></i></div>
+                            <h3>{{ __('messages.add_new_menu_item') }}</h3>
+                        </header>
 
-        <!-- WhatsApp Settings Card -->
-        <div class="card mb-6 max-w-3xl mt-6 mx-auto">
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h3 class="text-xl font-semibold text-white">{{ __('messages.whatsapp_orders') }}</h3>
-                    <p class="text-gray-400">{{ __('messages.allow_whatsapp_orders') }}</p>
-                </div>
-                <form action="{{ route('restaurant.whatsapp.toggle') }}" method="POST">
-                    @csrf
-                    <label class="switch">
-                        <input type="checkbox" {{ $restaurant->whatsapp_orders_enabled ? 'checked' : '' }} 
-                            onchange="this.form.submit()">
-                        <span class="slider"></span>
-                    </label>
-                </form>
-            </div>
-            
-            @if($restaurant->whatsapp_orders_enabled)
-                <form action="{{ route('restaurant.whatsapp.update') }}" method="POST">
-                    @csrf
-                    <div class="form-group">
-                        <label class="form-label">{{ __('messages.whatsapp_number') }}</label>
-                        <input type="text" name="whatsapp_number"
-                            value="{{ $restaurant->whatsapp_number }}"
-                            placeholder="{{ __('messages.whatsapp_example') }}"
-                            class="form-input" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save mr-2"></i>
-                        {{ __('messages.save_whatsapp_number') }}
-                    </button>
-                </form>
-            @endif
-        </div>
+                        <form action="{{ route('item.store') }}" method="POST" enctype="multipart/form-data"
+                              data-ajax data-ajax-reload
+                              x-data="{ showAdvanced: false }">
+                            @csrf
 
-        <!-- Restaurant Header Settings -->
-        <div class="card mb-6 max-w-3xl mx-auto">
-            <h3 class="text-xl font-semibold text-white mb-6">{{ __('messages.restaurant_header') }}</h3>
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('messages.select_category') }}</label>
+                                <select name="category_id" class="dash-input" required>
+                                    <option value="">{{ __('messages.select_category') }}</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
 
-            <form action="{{ route('restaurant.update.settings') }}" method="POST" enctype="multipart/form-data">
-                @csrf
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('messages.item_name') }}</label>
+                                <input type="text" name="name" class="dash-input" required dir="rtl">
+                            </div>
 
-                <!-- Background Image -->
-                <div class="mb-6">
-                    <h4 class="text-lg font-semibold text-white mb-4">{{ __('messages.background_image') }}</h4>
-                    <div class="form-group">
-                        <label class="form-label">{{ __('messages.background_image_optional') }}</label>
-                        <input type="file" name="background_image" accept="image/*" class="form-input">
-                        <p class="text-gray-400 text-sm mt-1">{{ __('messages.background_image_help') }}</p>
-                        @if($restaurant->background_image)
-                            <div class="mt-3">
-                                <p class="text-gray-300 text-sm">{{ __('messages.current_background') }}:</p>
-                                <img src="{{ asset('storage/' . $restaurant->background_image) }}" alt="Current background" class="mt-2 max-w-xs h-32 object-cover rounded-lg border border-gray-600">
-                                <div class="mt-2">
-                                    <label class="inline-flex items-center">
-                                        <input type="checkbox" name="remove_background" value="1" class="rounded border-gray-600 text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-sm text-gray-300">{{ __('messages.remove_background') }}</span>
-                                    </label>
+                            <div class="dash-field-row">
+                                <div class="dash-field" style="flex:2">
+                                    <label class="dash-label">{{ __('messages.price') }}</label>
+                                    <input type="number" step="0.01" min="0" name="price" class="dash-input" required placeholder="0.00">
+                                </div>
+                                <div class="dash-field" style="flex:3">
+                                    <label class="dash-label">{{ __('messages.item_image_optional') }}</label>
+                                    <input type="file" name="image" accept="image/*" class="dash-input dash-input-file">
                                 </div>
                             </div>
-                        @endif
+
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('messages.description_optional') }}</label>
+                                <textarea name="description" class="dash-input" rows="2" dir="rtl"></textarea>
+                            </div>
+
+                            <button type="button"
+                                    class="dash-collapse-toggle"
+                                    @click="showAdvanced = !showAdvanced"
+                                    :aria-expanded="showAdvanced.toString()">
+                                <i class="fas" :class="showAdvanced ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                <span x-text="showAdvanced ? '{{ __('messages.products.hide_options') }}' : '{{ __('messages.products.show_options') }}'"></span>
+                            </button>
+
+                            <div x-show="showAdvanced" x-transition x-cloak class="dash-collapsible">
+                                @include('restaurant.partials.option-groups-editor', ['groups' => []])
+                            </div>
+
+                            <button type="submit" class="dash-btn dash-btn-success dash-btn-block">
+                                <i class="fas fa-plus"></i>
+                                <span>{{ __('messages.add_menu_item_btn') }}</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save mr-2"></i>
-                    {{ __('messages.save_background_image') }}
-                </button>
-            </form>
-        </div>
-
-        <!-- Social Media & Theme Settings -->
-<div class="card mb-6 max-w-3xl mx-auto">
-    <h3 class="text-xl font-semibold text-white mb-6">{{ __('messages.social_media_theme') }}</h3>
-
-    <form action="{{ route('restaurant.update.settings') }}" method="POST">
-        @csrf
-        
-        <!-- Social Media Links -->
-        <div class="mb-8">
-            <h4 class="text-lg font-semibold text-white mb-4">{{ __('messages.social_media_links') }}</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="form-group">
-                    <label class="form-label"><i class="fab fa-facebook text-blue-500"></i> Facebook</label>
-                    <input type="url" name="facebook_url" value="{{ $restaurant->facebook_url }}" 
-                           placeholder="https://facebook.com/yourpage" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><i class="fab fa-instagram text-pink-500"></i> Instagram</label>
-                    <input type="url" name="instagram_url" value="{{ $restaurant->instagram_url }}" 
-                           placeholder="https://instagram.com/yourprofile" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><i class="fab fa-snapchat text-yellow-400"></i> Snapchat</label>
-                    <input type="url" name="snapchat_url" value="{{ $restaurant->snapchat_url }}" 
-                           placeholder="https://snapchat.com/add/username" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><i class="fab fa-twitter text-blue-400"></i> Twitter</label>
-                    <input type="url" name="twitter_url" value="{{ $restaurant->twitter_url }}" 
-                           placeholder="https://twitter.com/username" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><i class="fab fa-tiktok text-black"></i> TikTok</label>
-                    <input type="url" name="tiktok_url" value="{{ $restaurant->tiktok_url }}" 
-                           placeholder="https://tiktok.com/@username" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><i class="fab fa-whatsapp text-green-500"></i> WhatsApp Business</label>
-                    <input type="url" name="whatsapp_url" value="{{ $restaurant->whatsapp_url }}" 
-                           placeholder="https://wa.me/1234567890" class="form-input">
-                </div>
-            </div>
-        </div>
-
-        <!-- Theme Colors -->
-        <div class="mb-8">
-            <h4 class="text-lg font-semibold text-white mb-4">{{ __('messages.theme_colors') }}</h4>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.primary_color') }}</label>
-                    <input type="color" name="primary_color" 
-                           value="{{ $restaurant->theme_colors['primary'] ?? '#667eea' }}" 
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.secondary_color') }}</label>
-                    <input type="color" name="secondary_color" 
-                           value="{{ $restaurant->theme_colors['secondary'] ?? '#764ba2' }}" 
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.accent_color') }}</label>
-                    <input type="color" name="accent_color" 
-                           value="{{ $restaurant->theme_colors['accent'] ?? '#4facfe' }}" 
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.text_color') }}</label>
-                    <input type="color" name="text_color" 
-                           value="{{ $restaurant->theme_colors['text'] ?? '#ffffff' }}" 
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.background_color') }}</label>
-                    <input type="color" name="background_color" 
-                           value="{{ $restaurant->theme_colors['background'] ?? '#0a0e27' }}" 
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.card_color') }}</label>
-                    <input type="color" name="card_color"
-                           value="{{ $restaurant->theme_colors['card'] ?? '#252d56' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.secondary_background') }}</label>
-                    <input type="color" name="secondary_bg"
-                           value="{{ $restaurant->theme_colors['secondary_bg'] ?? '#141b3c' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.tertiary_background') }}</label>
-                    <input type="color" name="tertiary_bg"
-                           value="{{ $restaurant->theme_colors['tertiary_bg'] ?? '#1e2749' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.secondary_text') }}</label>
-                    <input type="color" name="secondary_text"
-                           value="{{ $restaurant->theme_colors['secondary_text'] ?? '#e2e8f0' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.muted_text') }}</label>
-                    <input type="color" name="muted_text"
-                           value="{{ $restaurant->theme_colors['muted_text'] ?? '#94a3b8' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.input_background') }}</label>
-                    <input type="color" name="input_bg"
-                           value="{{ $restaurant->theme_colors['input_bg'] ?? '#1e2749' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.input_border') }}</label>
-                    <input type="color" name="input_border"
-                           value="{{ $restaurant->theme_colors['input_border'] ?? '#334155' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ __('messages.language_selector_bg') }}</label>
-                    <input type="color" name="language_bg"
-                           value="{{ $restaurant->theme_colors['language_bg'] ?? '#1e2749' }}"
-                           class="w-full h-12 rounded-lg border border-gray-600">
-                </div>
-            </div>
-        </div>
-
-        <div class="flex space-x-3">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save mr-2"></i>
-                {{ __('messages.save_settings') }}
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="resetThemeColors()">
-                <i class="fas fa-undo mr-2"></i>
-                {{ __('messages.reset_theme_colors') }}
-            </button>
-        </div>
-    </form>
-</div>
-
-        <!-- Rest of existing content... -->
-    @endif
-
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <!-- Success Message -->
-            @if(session('success'))
-                <div class="alert alert-success mb-6">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            <!-- Error Messages -->
-            @if($errors->any())
-                <div class="alert alert-error mb-6">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <ul class="list-disc list-inside">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            @if(!$restaurant)
-                <!-- Setup Restaurant -->
-                <div class="card text-center">
-                    <div class="text-6xl mb-4">🏪</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">{{ __('messages.setup_your_restaurant') }}</h3>
-                    <p class="text-gray-300 mb-6">{{ __('messages.create_restaurant_profile') }}</p>
-                    <a href="{{ route('restaurant.create') }}" class="btn btn-success">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        Create Restaurant
-                    </a>
-                </div>
-            @else
-                <!-- Menu Categories and Items -->
+                {{-- Categories & items list --}}
                 @if($categories->isEmpty())
-                    <div class="card text-center">
-                        <div class="text-6xl mb-4">📋</div>
-                        <h3 class="text-xl font-semibold text-white mb-2">{{ __('messages.no_categories_yet') }}</h3>
-                        <p class="text-gray-400">{{ __('messages.start_adding_categories') }}</p>
+                    <div class="dash-empty">
+                        <div class="dash-empty-icon">📋</div>
+                        <h3>{{ __('messages.no_categories_yet') }}</h3>
+                        <p>{{ __('messages.start_adding_categories') }}</p>
                     </div>
                 @else
-                    @foreach($categories as $category)
-                        <div class="card mb-6">
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                                <div>
-                                    <h3 class="text-2xl font-bold text-white">{{ $category->name }}</h3>
-                                    <p class="text-gray-400">{{ $category->menuItems->count() }} items</p>
-                                </div>
-                                <form action="{{ route('category.delete', $category) }}" method="POST" class="mt-4 sm:mt-0">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger" 
-                                            onclick="return confirm('{{ __('messages.delete_category_confirm') }}')">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                        {{__('messages.Delete Category')}}
+                    <div class="dash-categories">
+                        @foreach($categories as $category)
+                            <details class="dash-category" open>
+                                <summary class="dash-category-head">
+                                    <div class="dash-category-title">
+                                        <i class="fas fa-folder-open"></i>
+                                        <span class="dash-category-name">{{ $category->name }}</span>
+                                        <span class="dash-count-badge">
+                                            {{ __('messages.products.items_count', ['count' => $category->menuItems->count()]) }}
+                                        </span>
+                                    </div>
+                                    <button type="button"
+                                            class="dash-btn dash-btn-danger dash-btn-sm"
+                                            data-ajax-action
+                                            data-url="{{ route('category.delete', $category) }}"
+                                            data-method="DELETE"
+                                            data-confirm="{{ __('messages.delete_category_confirm') }}"
+                                            data-on-success-reload>
+                                        <i class="fas fa-trash"></i>
+                                        <span>{{ __('messages.delete_category') }}</span>
                                     </button>
-                                </form>
-                            </div>
+                                </summary>
 
-                            @if($category->menuItems->isEmpty())
-                                <div class="text-center py-8 bg-gray-800 rounded-lg">
-                                    <div class="text-4xl mb-2">🍽️</div>
-                                    <p class="text-gray-400">{{ __('messages.no_items_in_category') }}</p>
-                                </div>
-                            @else
-                                <div class="responsive-grid">
-                                    @foreach($category->menuItems as $item)
-                                        <div class="menu-item-card">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <h4 class="font-semibold text-white text-lg">{{ $item->name }}</h4>
-                                                <div class="flex space-x-2">
-                                                    <button onclick="editItem({{ $item->id }})" 
-                                                            class="text-blue-400 hover:text-blue-300 p-1">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                        </svg>
-                                                    </button>
-                                                    <form action="{{ route('item.delete', $item) }}" method="POST" class="inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="text-red-400 hover:text-red-300 p-1" 
-                                                                onclick="return confirm('{{ __('messages.delete_item_confirm') }}')">
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                            </svg>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="flex flex-col sm:flex-row gap-4">
-                                                <div class="flex-1">
-                                                    @if($item->description)
-                                                        <p class="text-gray-300 text-sm mb-3">{{ $item->description }}</p>
+                                @if($category->menuItems->isEmpty())
+                                    <div class="dash-empty-sm">
+                                        <span>🍽️</span>
+                                        <p>{{ __('messages.products.no_items_hint') }}</p>
+                                    </div>
+                                @else
+                                    <div class="dash-items-grid">
+                                        @foreach($category->menuItems as $item)
+                                            @php
+                                                $itemGroupsPayload = $item->optionGroups->map(function ($g) {
+                                                    return [
+                                                        'id'            => $g->id,
+                                                        'group_type'    => $g->group_type,
+                                                        'group_name_ar' => $g->group_name_ar,
+                                                        'min_choices'   => $g->min_choices,
+                                                        'max_choices'   => $g->max_choices,
+                                                        'is_required'   => (bool) $g->is_required,
+                                                        'position'      => $g->position,
+                                                        'options'       => $g->options->map(fn ($o) => [
+                                                            'id'             => $o->id,
+                                                            'option_name_ar' => $o->option_name_ar,
+                                                            'price_delta'    => (float) $o->price_delta,
+                                                            'option_note_ar' => $o->option_note_ar,
+                                                            'position'       => $o->position,
+                                                            'is_active'      => (bool) $o->is_active,
+                                                        ])->values()->all(),
+                                                    ];
+                                                })->values()->all();
+                                            @endphp
+
+                                            <article class="dash-item" x-data="{ editing: false }" data-item-row>
+                                                <div class="dash-item-media">
+                                                    @if($item->image)
+                                                        <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->name }}">
+                                                    @else
+                                                        <div class="dash-item-placeholder"><i class="fas fa-utensils"></i></div>
                                                     @endif
-                                                    <div class="price text-xl">{{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</div>
                                                 </div>
-                                                @if($item->image)
-                                                    <div class="flex-shrink-0">
-                                                        <img src="{{ asset('storage/' . $item->image) }}" 
-                                                             alt="{{ $item->name }}" 
-                                                             class="menu-image">
-                                                    </div>
-                                                @else
-                                                    <div class="flex-shrink-0">
-                                                        <div class="menu-image bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center">
-                                                            <i class="fas fa-utensils text-white text-2xl opacity-50"></i>
+                                                <div class="dash-item-body">
+                                                    <h4 class="dash-item-title">{{ $item->name }}</h4>
+                                                    @if($item->description)
+                                                        <p class="dash-item-desc">{{ $item->description }}</p>
+                                                    @endif
+                                                    <div class="dash-item-price">{{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</div>
+
+                                                    @if($item->optionGroups->count() > 0)
+                                                        <div class="dash-item-groups">
+                                                            @foreach($item->optionGroups as $g)
+                                                                <span class="dash-group-badge"
+                                                                      title="{{ $g->options->count() }} {{ __('messages.options.title') }}">
+                                                                    <i class="fas fa-{{ $g->group_type === 'SINGLE' ? 'dot-circle' : 'check-square' }}"></i>
+                                                                    {{ $g->group_name_ar }}
+                                                                    <small>({{ $g->options->count() }})</small>
+                                                                </span>
+                                                            @endforeach
                                                         </div>
+                                                    @endif
+                                                </div>
+
+                                                <div class="dash-item-actions">
+                                                    <button type="button" @click="editing = true" class="dash-btn-icon dash-btn-icon-blue"
+                                                            :title="'{{ __('messages.edit_menu_item') }}'">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button"
+                                                            class="dash-btn-icon dash-btn-icon-red"
+                                                            data-ajax-action
+                                                            data-url="{{ route('item.delete', $item) }}"
+                                                            data-method="DELETE"
+                                                            data-confirm="{{ __('messages.delete_item_confirm') }}"
+                                                            data-on-success-remove="[data-item-row]"
+                                                            :title="'{{ __('messages.delete_item') }}'">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+
+                                                {{-- Per-item edit modal --}}
+                                                <div x-show="editing"
+                                                     x-cloak x-transition
+                                                     @keydown.escape.window="editing = false"
+                                                     class="dash-modal"
+                                                     @click.self="editing = false">
+                                                    <div class="dash-modal-card">
+                                                        <header class="dash-modal-head">
+                                                            <h3>{{ __('messages.edit_menu_item') }}</h3>
+                                                            <button type="button" @click="editing = false" class="dash-btn-icon">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </header>
+
+                                                        <form action="{{ route('item.update', $item) }}" method="POST"
+                                                              enctype="multipart/form-data"
+                                                              data-ajax data-ajax-reload>
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <div class="dash-modal-body">
+                                                                <div class="dash-field">
+                                                                    <label class="dash-label">{{ __('messages.item_name') }}</label>
+                                                                    <input type="text" name="name" value="{{ $item->name }}"
+                                                                           class="dash-input" required dir="rtl">
+                                                                </div>
+                                                                <div class="dash-field">
+                                                                    <label class="dash-label">{{ __('messages.description_optional') }}</label>
+                                                                    <textarea name="description" class="dash-input" rows="2" dir="rtl">{{ $item->description }}</textarea>
+                                                                </div>
+                                                                <div class="dash-field-row">
+                                                                    <div class="dash-field" style="flex:2">
+                                                                        <label class="dash-label">{{ __('messages.price') }}</label>
+                                                                        <input type="number" step="0.01" min="0" name="price"
+                                                                               value="{{ $item->price }}" class="dash-input" required>
+                                                                    </div>
+                                                                    <div class="dash-field" style="flex:3">
+                                                                        <label class="dash-label">{{ __('messages.update_image_optional') }}</label>
+                                                                        <input type="file" name="image" accept="image/*" class="dash-input dash-input-file">
+                                                                    </div>
+                                                                </div>
+
+                                                                @include('restaurant.partials.option-groups-editor', ['groups' => $itemGroupsPayload])
+                                                            </div>
+                                                            <footer class="dash-modal-foot">
+                                                                <button type="button" @click="editing = false" class="dash-btn dash-btn-ghost">
+                                                                    {{ __('messages.cancel') }}
+                                                                </button>
+                                                                <button type="submit" class="dash-btn dash-btn-primary">
+                                                                    <i class="fas fa-save"></i>
+                                                                    <span>{{ __('messages.update_item') }}</span>
+                                                                </button>
+                                                            </footer>
+                                                        </form>
                                                     </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
+                                                </div>
+                                            </article>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </details>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
+
+            {{-- ==================== PROFILE TAB ==================== --}}
+            <section x-show="tab === 'profile'" x-cloak role="tabpanel" class="dash-tab-panel">
+                <div class="dash-card dash-card-wide">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-purple"><i class="fas fa-id-card"></i></div>
+                        <h3>{{ __('messages.restaurant_profile') }}</h3>
+                    </header>
+
+                    <form action="{{ route('restaurant.update.profile') }}" method="POST"
+                          enctype="multipart/form-data" data-ajax>
+                        @csrf
+
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('messages.restaurant_name') }}</label>
+                            <input type="text" name="name" value="{{ $restaurant->name }}" class="dash-input" required>
+                            <small class="dash-help">{{ __('messages.restaurant_name_help') }}</small>
+                        </div>
+
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('messages.restaurant_description') }}</label>
+                            <textarea name="description" rows="3" class="dash-input"
+                                      placeholder="{{ __('messages.restaurant_description_placeholder') }}">{{ $restaurant->description }}</textarea>
+                            <small class="dash-help">{{ __('messages.restaurant_description_help') }}</small>
+                        </div>
+
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('messages.restaurant_logo') }}</label>
+                            <input type="file" name="logo" accept="image/*" class="dash-input dash-input-file">
+                            <small class="dash-help">{{ __('messages.logo_upload_help') }}</small>
+                            @if($restaurant->logo)
+                                <div class="dash-current-image">
+                                    <p>{{ __('messages.current_logo') }}:</p>
+                                    <img src="{{ asset('storage/' . $restaurant->logo) }}" alt="" class="dash-logo-preview">
+                                    <label class="dash-toggle">
+                                        <input type="checkbox" name="remove_logo" value="1">
+                                        <span>{{ __('messages.remove_logo') }}</span>
+                                    </label>
                                 </div>
                             @endif
                         </div>
-                    @endforeach
-                @endif
-            @endif
-        </div>
-    </div>
 
-    <!-- Edit Item Modal -->
-    <div id="editModal" class="fixed inset-0 modal hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="modal-content w-full max-w-md p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-semibold text-white">{{ __('messages.edit_menu_item') }}</h3>
-                    <button onclick="closeEditModal()" class="text-gray-400 hover:text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+                        <button type="submit" class="dash-btn dash-btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>{{ __('messages.save_profile') }}</span>
+                        </button>
+                    </form>
                 </div>
-                
-                <form id="editForm" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    @method('PUT')
-                    <div class="space-y-4">
-                        <div class="form-group">
-                            <label class="form-label">{{ __('messages.item_name') }}</label>
-                            <input type="text" id="editName" name="name" class="form-input" required>
+
+                {{-- Background image (separate form because it's optional & heavier) --}}
+                <div class="dash-card dash-card-wide">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-blue"><i class="fas fa-image"></i></div>
+                        <h3>{{ __('messages.restaurant_header') }}</h3>
+                    </header>
+                    <form action="{{ route('restaurant.update.settings') }}" method="POST"
+                          enctype="multipart/form-data" data-ajax>
+                        @csrf
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('messages.background_image_optional') }}</label>
+                            <input type="file" name="background_image" accept="image/*" class="dash-input dash-input-file">
+                            <small class="dash-help">{{ __('messages.background_image_help') }}</small>
+                            @if($restaurant->background_image)
+                                <div class="dash-current-image">
+                                    <p>{{ __('messages.current_background') }}:</p>
+                                    <img src="{{ asset('storage/' . $restaurant->background_image) }}" alt="" class="dash-bg-preview">
+                                    <label class="dash-toggle">
+                                        <input type="checkbox" name="remove_background" value="1">
+                                        <span>{{ __('messages.remove_background') }}</span>
+                                    </label>
+                                </div>
+                            @endif
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">{{ __('messages.restaurant_description') }}</label>
-                            <textarea id="editDescription" name="description" class="form-input" rows="2"></textarea>
+                        <button type="submit" class="dash-btn dash-btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>{{ __('messages.save_background_image') }}</span>
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Social links --}}
+                <div class="dash-card dash-card-wide">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-pink"><i class="fas fa-share-alt"></i></div>
+                        <h3>{{ __('messages.social_media_links') }}</h3>
+                    </header>
+                    <form action="{{ route('restaurant.update.settings') }}" method="POST" data-ajax>
+                        @csrf
+                        <div class="dash-social-grid">
+                            @foreach([
+                                ['facebook_url',  'fab fa-facebook text-blue-500', 'Facebook',          'https://facebook.com/yourpage'],
+                                ['instagram_url', 'fab fa-instagram text-pink-500','Instagram',         'https://instagram.com/yourprofile'],
+                                ['snapchat_url',  'fab fa-snapchat text-yellow-400','Snapchat',         'https://snapchat.com/add/username'],
+                                ['twitter_url',   'fab fa-twitter text-blue-400',  'Twitter',           'https://twitter.com/username'],
+                                ['tiktok_url',    'fab fa-tiktok',                  'TikTok',            'https://tiktok.com/@username'],
+                                ['whatsapp_url',  'fab fa-whatsapp text-green-500', 'WhatsApp Business', 'https://wa.me/1234567890'],
+                            ] as [$name, $icon, $label, $ph])
+                                <div class="dash-field">
+                                    <label class="dash-label"><i class="{{ $icon }}"></i> {{ $label }}</label>
+                                    <input type="url" name="{{ $name }}" value="{{ $restaurant->$name }}"
+                                           placeholder="{{ $ph }}" class="dash-input">
+                                </div>
+                            @endforeach
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">{{ __('messages.price') }}</label>
-                            <input type="number" step="0.01" id="editPrice" name="price" class="form-input" required>
+                        <button type="submit" class="dash-btn dash-btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>{{ __('messages.save_settings') }}</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            {{-- ==================== WHATSAPP TAB ==================== --}}
+            <section x-show="tab === 'whatsapp'" x-cloak role="tabpanel" class="dash-tab-panel">
+                <div class="dash-card dash-card-wide">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-green"><i class="fab fa-whatsapp"></i></div>
+                        <h3>{{ __('messages.whatsapp_orders') }}</h3>
+                    </header>
+
+                    <form action="{{ route('restaurant.whatsapp.toggle') }}" method="POST" data-ajax class="dash-inline-form">
+                        @csrf
+                        <div>
+                            <p class="dash-label">{{ __('messages.whatsapp_orders') }}</p>
+                            <small class="dash-help">{{ __('messages.allow_whatsapp_orders') }}</small>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">{{ __('messages.update_image_optional') }}</label>
-                            <input type="file" name="image" accept="image/*" class="form-input">
-                        </div>
-                        <div class="flex space-x-3">
-                            <button type="submit" class="btn btn-primary flex-1">
-                                {{ __('messages.update_item') }}
+                        <label class="dash-switch">
+                            <input type="checkbox" {{ $restaurant->whatsapp_orders_enabled ? 'checked' : '' }}
+                                   onchange="this.form.requestSubmit()">
+                            <span class="dash-switch-slider"></span>
+                        </label>
+                    </form>
+
+                    @if($restaurant->whatsapp_orders_enabled)
+                        <form action="{{ route('restaurant.whatsapp.update') }}" method="POST" data-ajax class="dash-mt">
+                            @csrf
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('messages.whatsapp_number') }}</label>
+                                <input type="text" name="whatsapp_number" value="{{ $restaurant->whatsapp_number }}"
+                                       placeholder="{{ __('messages.whatsapp_example') }}" class="dash-input" required>
+                            </div>
+                            <button type="submit" class="dash-btn dash-btn-primary">
+                                <i class="fas fa-save"></i>
+                                <span>{{ __('messages.save_whatsapp_number') }}</span>
                             </button>
-                            <button type="button" onclick="closeEditModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white">
-                                {{ __('messages.cancel') }}
+                        </form>
+                    @endif
+                </div>
+            </section>
+
+            {{-- ==================== THEME TAB ==================== --}}
+            <section x-show="tab === 'theme'" x-cloak role="tabpanel" class="dash-tab-panel">
+                <div class="dash-card dash-card-wide">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-purple"><i class="fas fa-palette"></i></div>
+                        <h3>{{ __('messages.theme_colors') }}</h3>
+                    </header>
+                    <p class="dash-help" style="margin-bottom: 1rem">{{ __('messages.choose_colors') }}</p>
+
+                    <form action="{{ route('restaurant.update.settings') }}" method="POST" data-ajax>
+                        @csrf
+                        <div class="dash-colors-grid">
+                            @foreach([
+                                ['primary_color',    'primary',        '#667eea', __('messages.primary_color')],
+                                ['secondary_color',  'secondary',      '#764ba2', __('messages.secondary_color')],
+                                ['accent_color',     'accent',         '#4facfe', __('messages.accent_color')],
+                                ['text_color',       'text',           '#ffffff', __('messages.text_color')],
+                                ['background_color', 'background',     '#0a0e27', __('messages.background_color')],
+                                ['card_color',       'card',           '#252d56', __('messages.card_color')],
+                                ['secondary_bg',     'secondary_bg',   '#141b3c', __('messages.secondary_background')],
+                                ['tertiary_bg',      'tertiary_bg',    '#1e2749', __('messages.tertiary_background')],
+                                ['secondary_text',   'secondary_text', '#e2e8f0', __('messages.secondary_text')],
+                                ['muted_text',       'muted_text',     '#94a3b8', __('messages.muted_text')],
+                                ['input_bg',         'input_bg',       '#1e2749', __('messages.input_background')],
+                                ['input_border',     'input_border',   '#334155', __('messages.input_border')],
+                            ] as [$field, $key, $default, $label])
+                                <label class="dash-color-field">
+                                    <span class="dash-label">{{ $label }}</span>
+                                    <input type="color" name="{{ $field }}"
+                                           value="{{ $restaurant->theme_colors[$key] ?? $default }}">
+                                </label>
+                            @endforeach
+                        </div>
+
+                        <div class="dash-button-row">
+                            <button type="submit" class="dash-btn dash-btn-primary">
+                                <i class="fas fa-save"></i>
+                                <span>{{ __('messages.save_settings') }}</span>
+                            </button>
+                            <button type="button" class="dash-btn dash-btn-ghost" onclick="resetThemeColors()">
+                                <i class="fas fa-undo"></i>
+                                <span>{{ __('messages.reset_theme_colors') }}</span>
                             </button>
                         </div>
-                    </div>
-                </form>
-            </div>
+                    </form>
+                </div>
+            </section>
         </div>
-    </div>
-
-    <script>
-        const items = @json($categories->flatMap(fn($cat) => $cat->menuItems));
-        
-        function editItem(itemId) {
-            const item = items.find(i => i.id === itemId);
-            if (item) {
-                document.getElementById('editName').value = item.name;
-                document.getElementById('editDescription').value = item.description || '';
-                document.getElementById('editPrice').value = item.price;
-                document.getElementById('editForm').action = `/menu-item/${itemId}`;
-                document.getElementById('editModal').classList.remove('hidden');
-            }
-        }
-        
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('editModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEditModal();
-            }
-        });
-    </script>
-
-    <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            
-            --bg-primary: #0a0e27;
-            --bg-secondary: #141b3c;
-            --bg-tertiary: #1e2749;
-            --bg-card: #252d56;
-            --bg-elevated: #2a3365;
-            
-            --text-primary: #ffffff;
-            --text-secondary: #e2e8f0;
-            --text-muted: #94a3b8;
-            
-            --border-primary: #334155;
-            --border-secondary: #475569;
-            --border-accent: #64748b;
-            
-            --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.15);
-            --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.2);
-            --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.25);
-            
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-        }
-
-        .card {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-primary) !important;
-            border-radius: var(--radius-xl) !important;
-            padding: 2rem !important;
-            box-shadow: var(--shadow-md) !important;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: var(--primary-gradient);
-            opacity: 0.6;
-        }
-
-        .card:hover {
-            transform: translateY(-8px) !important;
-            box-shadow: var(--shadow-xl) !important;
-            border-color: var(--border-secondary) !important;
-        }
-
-        .quick-action-card {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-primary) !important;
-            border-radius: var(--radius-lg) !important;
-            padding: 1.5rem !important;
-            transition: all 0.3s ease !important;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-
-        .quick-action-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--accent-gradient);
-        }
-
-        .quick-action-card:hover {
-            transform: translateY(-4px) !important;
-            box-shadow: var(--shadow-lg) !important;
-            border-color: var(--border-secondary) !important;
-        }
-
-        .menu-item-card {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-primary) !important;
-            border-radius: var(--radius-lg) !important;
-            padding: 1.5rem !important;
-            transition: all 0.3s ease !important;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-
-        .menu-item-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--success-gradient);
-        }
-
-        .menu-item-card:hover {
-            transform: translateY(-4px) !important;
-            box-shadow: var(--shadow-lg) !important;
-            border-color: var(--border-secondary) !important;
-            background: var(--bg-elevated) !important;
-        }
-
-        .menu-image {
-            width: 80px !important;
-            height: 80px !important;
-            object-fit: cover !important;
-            border-radius: var(--radius-lg) !important;
-            border: 2px solid var(--border-secondary) !important;
-            transition: all 0.3s ease !important;
-            box-shadow: var(--shadow-md) !important;
-        }
-
-        .menu-image:hover {
-            transform: scale(1.05) !important;
-            border-color: var(--border-accent) !important;
-        }
-
-        .btn {
-            padding: 0.875rem 1.5rem !important;
-            border-radius: var(--radius-lg) !important;
-            font-weight: 600 !important;
-            font-size: 0.95rem !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            border: none !important;
-            cursor: pointer !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 0.5rem !important;
-            text-decoration: none !important;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn-primary {
-            background: var(--primary-gradient) !important;
-            color: white !important;
-            box-shadow: var(--shadow-md) !important;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: var(--shadow-lg) !important;
-        }
-
-        .btn-success {
-            background: var(--success-gradient) !important;
-            color: white !important;
-            box-shadow: var(--shadow-md) !important;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: var(--shadow-lg) !important;
-        }
-
-        .btn-danger {
-            background: var(--warning-gradient) !important;
-            color: white !important;
-            box-shadow: var(--shadow-md) !important;
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: var(--shadow-lg) !important;
-        }
-
-        .form-input {
-            background: var(--bg-tertiary) !important;
-            border: 2px solid var(--border-primary) !important;
-            color: var(--text-primary) !important;
-            padding: 0.875rem 1rem !important;
-            border-radius: var(--radius-lg) !important;
-            transition: all 0.3s ease !important;
-            font-size: 0.95rem !important;
-            font-weight: 500 !important;
-            width: 100% !important;
-        }
-
-        .form-input:focus {
-            background: var(--bg-elevated) !important;
-            border-color: #667eea !important;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-            outline: none !important;
-            transform: translateY(-1px) !important;
-        }
-
-        .form-input::placeholder {
-            color: var(--text-muted) !important;
-            font-weight: 400 !important;
-        }
-
-        .price {
-            font-size: 1.25rem !important;
-            font-weight: 700 !important;
-            background: var(--success-gradient) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
-        }
-
-        .icon-wrapper {
-            width: 2.5rem !important;
-            height: 2.5rem !important;
-            border-radius: var(--radius-lg) !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-right: 0.75rem !important;
-        }
-
-        .icon-blue {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-        }
-
-        .icon-green {
-            background: var(--success-gradient) !important;
-        }
-
-        .responsive-grid {
-            display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
-            gap: 1.5rem !important;
-            margin-bottom: 2rem !important;
-        }
-
-        .modal {
-            background: rgba(10, 14, 39, 0.8) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-        }
-
-        .modal-content {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-secondary) !important;
-            border-radius: var(--radius-xl) !important;
-            box-shadow: var(--shadow-xl) !important;
-            backdrop-filter: blur(20px) !important;
-        }
-
-        .alert {
-            padding: 1.25rem 1.5rem !important;
-            border-radius: var(--radius-lg) !important;
-            margin-bottom: 1.5rem !important;
-            border-left: 4px solid !important;
-            backdrop-filter: blur(10px) !important;
-            font-weight: 500 !important;
-        }
-
-        .alert-success {
-            background: rgba(67, 233, 123, 0.1) !important;
-            border-left-color: #43e97b !important;
-            color: #86efac !important;
-        }
-
-        .alert-error {
-            background: rgba(245, 87, 108, 0.1) !important;
-            border-left-color: #f5576c !important;
-            color: #fca5a5 !important;
-        }
-
-        .form-label {
-            display: block !important;
-            margin-bottom: 8px !important;
-            font-weight: 600 !important;
-            color: #e2e8f0 !important;
-        }
-
-        .form-group {
-            margin-bottom: 20px !important;
-        }
-
-        @media (max-width: 768px) {
-            .responsive-grid {
-                grid-template-columns: 1fr !important;
-                gap: 1rem !important;
-            }
-            
-            .card {
-                padding: 1.5rem !important;
-            }
-            
-            .quick-action-card {
-                padding: 1.25rem !important;
-            }
-        }
-    </style>
+    @endif
 
     <script>
         function resetThemeColors() {
-            if (confirm('{{ __("messages.confirm_reset_theme_colors") }}')) {
-                // Reset all color inputs to default values
-                document.querySelector('input[name="primary_color"]').value = '#667eea';
-                document.querySelector('input[name="secondary_color"]').value = '#764ba2';
-                document.querySelector('input[name="accent_color"]').value = '#4facfe';
-                document.querySelector('input[name="text_color"]').value = '#ffffff';
-                document.querySelector('input[name="background_color"]').value = '#0a0e27';
-                document.querySelector('input[name="card_color"]').value = '#252d56';
-                document.querySelector('input[name="secondary_bg"]').value = '#141b3c';
-                document.querySelector('input[name="tertiary_bg"]').value = '#1e2749';
-                document.querySelector('input[name="secondary_text"]').value = '#e2e8f0';
-                document.querySelector('input[name="muted_text"]').value = '#94a3b8';
-                document.querySelector('input[name="input_bg"]').value = '#1e2749';
-                document.querySelector('input[name="input_border"]').value = '#334155';
-                document.querySelector('input[name="language_bg"]').value = '#1e2749';
-
-                // Submit the form to save the reset values
-                document.querySelector('form[action*="update.settings"]').submit();
-            }
+            if (!confirm(@js(__('messages.confirm_reset_theme_colors')))) return;
+            const defaults = {
+                primary_color: '#667eea', secondary_color: '#764ba2', accent_color: '#4facfe',
+                text_color: '#ffffff', background_color: '#0a0e27', card_color: '#252d56',
+                secondary_bg: '#141b3c', tertiary_bg: '#1e2749', secondary_text: '#e2e8f0',
+                muted_text: '#94a3b8', input_bg: '#1e2749', input_border: '#334155',
+            };
+            Object.entries(defaults).forEach(([name, value]) => {
+                const inp = document.querySelector(`input[name="${name}"]`);
+                if (inp) inp.value = value;
+            });
+            window.toast?.info(@js(__('messages.theme_colors_updated')));
         }
     </script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+                   clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+        /* ---- Header ---- */
+        .dash-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .dash-header-main { flex: 1; min-width: 0; }
+        .dash-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin: 0;
+        }
+        .dash-title i { color: #a5b4fc; }
+        .dash-subtitle { color: #94a3b8; margin: 0.25rem 0 0; font-size: 0.9rem; }
+
+        .dash-restaurant-switcher select {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 8px;
+            padding: 0.4rem 0.7rem;
+            font-size: 0.85rem;
+        }
+        .dash-view-menu {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.55rem 1rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff !important;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: transform .15s;
+        }
+        .dash-view-menu:hover { transform: translateY(-1px); }
+
+        /* ---- Wrapper ---- */
+        .dash-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.25rem 1rem 4rem;
+        }
+
+        /* ---- Tabs ---- */
+        .dash-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: #1e293b;
+            padding: 0.35rem;
+            border-radius: 14px;
+            border: 1px solid #334155;
+            overflow-x: auto;
+            scrollbar-width: none;
+            position: sticky;
+            top: 0.75rem;
+            z-index: 20;
+            margin-bottom: 1.25rem;
+        }
+        .dash-tabs::-webkit-scrollbar { display: none; }
+        .dash-tab {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.65rem 1rem;
+            background: transparent;
+            border: 0;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            white-space: nowrap;
+        }
+        .dash-tab:hover { color: #e2e8f0; background: rgba(255,255,255,0.04); }
+        .dash-tab-active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+            color: #fff !important;
+        }
+
+        /* ---- Cards ---- */
+        .dash-tab-panel { display: flex; flex-direction: column; gap: 1rem; }
+        .dash-grid-two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .dash-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 1.15rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .dash-card-wide {}
+        .dash-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+        .dash-card-header h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+        .dash-card-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .dash-icon-blue   { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .dash-icon-green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .dash-icon-pink   { background: linear-gradient(135deg, #ec4899, #db2777); }
+        .dash-icon-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+
+        /* ---- Fields ---- */
+        .dash-field { margin-bottom: 0.85rem; }
+        .dash-field-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .dash-field-row > .dash-field { min-width: 0; }
+        .dash-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.02em;
+        }
+        .dash-input {
+            width: 100%;
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            color: #f1f5f9 !important;
+            border-radius: 10px !important;
+            padding: 0.65rem 0.85rem !important;
+            font-size: 0.9rem !important;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .dash-input:focus {
+            border-color: #6366f1 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+        }
+        .dash-input-file { padding: 0.45rem !important; }
+        .dash-help { display: block; color: #94a3b8; font-size: 0.72rem; margin-top: 0.3rem; }
+
+        /* ---- Buttons ---- */
+        .dash-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.15rem;
+            border-radius: 10px;
+            border: 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #fff !important;
+            cursor: pointer;
+            transition: transform .15s, opacity .15s, box-shadow .15s;
+        }
+        .dash-btn:hover { transform: translateY(-1px); }
+        .dash-btn-block { width: 100%; justify-content: center; }
+        .dash-btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .dash-btn-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .dash-btn-danger  { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        .dash-btn-ghost   {
+            background: transparent !important;
+            border: 1px solid #334155 !important;
+            color: #e2e8f0 !important;
+        }
+        .dash-btn-ghost:hover { background: rgba(255,255,255,0.04) !important; }
+        .dash-btn-sm { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
+
+        .dash-btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 8px;
+            border: 0;
+            background: rgba(255,255,255,0.05);
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .dash-btn-icon:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .dash-btn-icon-blue { background: rgba(59, 130, 246, 0.12); color: #93c5fd; }
+        .dash-btn-icon-red  { background: rgba(239, 68, 68, 0.12);  color: #fca5a5; }
+
+        .dash-collapse-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: transparent;
+            border: 1px dashed #334155;
+            color: #cbd5e1;
+            border-radius: 10px;
+            padding: 0.5rem 0.9rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-bottom: 0.75rem;
+            transition: border-color .15s, color .15s;
+        }
+        .dash-collapse-toggle:hover { border-color: #64748b; color: #fff; }
+        .dash-collapsible { margin-bottom: 0.85rem; }
+
+        .dash-button-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* ---- Setup (no restaurant) ---- */
+        .dash-setup-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            max-width: 32rem;
+            margin: 2rem auto;
+        }
+        .dash-setup-icon { font-size: 3rem; }
+        .dash-setup-card h3 { color: #f1f5f9; margin: 0.75rem 0 0.5rem; }
+        .dash-setup-card p { color: #94a3b8; margin-bottom: 1.25rem; }
+
+        /* ---- Empty states ---- */
+        .dash-empty, .dash-empty-sm {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px dashed #334155;
+            border-radius: 14px;
+            text-align: center;
+            padding: 2rem;
+            color: #94a3b8;
+        }
+        .dash-empty-icon { font-size: 2.25rem; }
+        .dash-empty h3 { color: #e2e8f0; margin: 0.5rem 0 0.25rem; }
+        .dash-empty-sm { padding: 1rem; font-size: 0.85rem; }
+
+        /* ---- Categories ---- */
+        .dash-categories { display: flex; flex-direction: column; gap: 0.85rem; }
+        .dash-category {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 0.5rem 1rem 1rem;
+        }
+        .dash-category[open] { padding-bottom: 1rem; }
+        .dash-category-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0.75rem 0;
+            list-style: none;
+            gap: 0.75rem;
+        }
+        .dash-category-head::-webkit-details-marker { display: none; }
+        .dash-category-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            min-width: 0;
+        }
+        .dash-category-title i { color: #fbbf24; }
+        .dash-category-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dash-count-badge {
+            font-size: 0.7rem;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        /* ---- Items grid ---- */
+        .dash-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .dash-item {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 0.75rem;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.75rem;
+            align-items: start;
+            transition: transform .15s, border-color .15s;
+        }
+        .dash-item:hover { border-color: #475569; transform: translateY(-1px); }
+        .dash-item-media { flex-shrink: 0; }
+        .dash-item-media img, .dash-item-placeholder {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+        .dash-item-placeholder {
+            background: linear-gradient(135deg, #334155, #475569);
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 1.25rem;
+        }
+        .dash-item-body { min-width: 0; }
+        .dash-item-title {
+            font-weight: 600;
+            color: #f1f5f9;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        .dash-item-desc {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin: 0.25rem 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .dash-item-price {
+            font-weight: 700;
+            font-size: 1rem;
+            background: linear-gradient(135deg, #34d399, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-top: 0.35rem;
+        }
+        .dash-item-groups {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 0.35rem;
+        }
+        .dash-group-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            border-radius: 999px;
+        }
+        .dash-group-badge small { opacity: 0.7; }
+        .dash-item-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        /* ---- Modal ---- */
+        .dash-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 14, 39, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .dash-modal-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 44rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .dash-modal-head, .dash-modal-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #334155;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .dash-modal-foot {
+            border-top: 1px solid #334155;
+            border-bottom: 0;
+            justify-content: flex-end;
+        }
+        .dash-modal-head h3 { margin: 0; color: #f1f5f9; font-size: 1.05rem; }
+        .dash-modal-body { padding: 1.25rem; overflow-y: auto; }
+
+        /* ---- Switch ---- */
+        .dash-switch { position: relative; display: inline-block; width: 52px; height: 28px; }
+        .dash-switch input { opacity: 0; width: 0; height: 0; }
+        .dash-switch-slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #475569; transition: .3s; border-radius: 28px;
+        }
+        .dash-switch-slider::before {
+            content: ''; position: absolute;
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: #fff; transition: .3s; border-radius: 50%;
+        }
+        html[dir="rtl"] .dash-switch-slider::before { left: auto; right: 4px; }
+        .dash-switch input:checked + .dash-switch-slider { background: #10b981; }
+        .dash-switch input:checked + .dash-switch-slider::before { transform: translateX(24px); }
+        html[dir="rtl"] .dash-switch input:checked + .dash-switch-slider::before { transform: translateX(-24px); }
+
+        .dash-inline-form {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .dash-mt { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155; }
+
+        /* ---- Social grid ---- */
+        .dash-social-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ---- Theme colors grid ---- */
+        .dash-colors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .dash-color-field {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 0.65rem;
+        }
+        .dash-color-field input[type="color"] {
+            width: 100%;
+            height: 2.25rem;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        /* ---- Current image preview ---- */
+        .dash-current-image { margin-top: 0.75rem; }
+        .dash-current-image p { color: #94a3b8; font-size: 0.75rem; margin: 0 0 0.4rem; }
+        .dash-logo-preview { max-height: 4rem; border-radius: 8px; border: 1px solid #334155; background: #fff; padding: 4px; }
+        .dash-bg-preview { max-height: 8rem; border-radius: 8px; border: 1px solid #334155; object-fit: cover; }
+        .dash-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.4rem;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+        }
+
+        /* ============================= MOBILE ============================= */
+        @media (max-width: 768px) {
+            .dash-grid-two { grid-template-columns: 1fr; }
+            .dash-social-grid { grid-template-columns: 1fr; }
+            .dash-items-grid { grid-template-columns: 1fr; }
+            .dash-item { grid-template-columns: auto 1fr; }
+            .dash-item-actions { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; }
+            .dash-view-menu { width: 100%; justify-content: center; }
+            .dash-header { flex-direction: column; align-items: stretch; }
+            .dash-modal-card { max-height: 100vh; border-radius: 0; }
+            .dash-modal { padding: 0; }
+            .dash-tab span { display: none; }
+            .dash-tab { padding: 0.7rem 0.85rem; }
+            .dash-tab i { font-size: 1.05rem; }
+            .dash-tabs { gap: 0.15rem; }
+        }
+        @media (max-width: 480px) {
+            .dash-wrap { padding: 1rem 0.75rem 4rem; }
+            .dash-card { padding: 1rem; }
+            .dash-field-row { flex-direction: column; gap: 0.5rem; }
+        }
+
+        /* Respect RTL for grid/flex alignment */
+        html[dir="rtl"] .dash-item-actions { align-items: flex-start; }
+    </style>
 </x-app-layout>

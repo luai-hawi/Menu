@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Restaurant;
+use App\Http\Requests\MenuItemRequest;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
+use App\Models\MenuItemOptionGroup;
+use App\Models\Restaurant;
 use App\Services\ImageService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class RestaurantController extends Controller
@@ -18,9 +23,55 @@ class RestaurantController extends Controller
         $this->imageService = $imageService;
     }
 
-    protected function getSelectedRestaurant()
+    /* =================================================================
+     * AJAX-friendly response helpers
+     * ================================================================= */
+
+    /**
+     * Return JSON when the client expects it, otherwise fall back to a
+     * classic Laravel redirect with a flash message. This lets every save
+     * endpoint be reused by both a JS-driven fetch() call and a no-JS
+     * form POST.
+     */
+    protected function ok(Request $request, string $message, array $extra = [], ?string $fallbackRoute = 'restaurant.dashboard'): JsonResponse|RedirectResponse
+    {
+        if ($this->wantsJson($request)) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ] + $extra);
+        }
+
+        return redirect()->route($fallbackRoute)->with('success', $message);
+    }
+
+    protected function fail(Request $request, string $message, int $status = 422, array $extra = [], ?string $fallbackRoute = 'restaurant.dashboard'): JsonResponse|RedirectResponse
+    {
+        if ($this->wantsJson($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ] + $extra, $status);
+        }
+
+        return redirect()->route($fallbackRoute)->with('error', $message);
+    }
+
+    protected function wantsJson(Request $request): bool
+    {
+        return $request->expectsJson() || $request->ajax();
+    }
+
+    /* =================================================================
+     * Dashboard + restaurant switching
+     * ================================================================= */
+
+    protected function getSelectedRestaurant(): ?Restaurant
     {
         $user = auth()->user();
+        if (! $user) {
+            return null;
+        }
         $restaurants = $user->restaurants;
 
         if ($restaurants->isEmpty()) {
@@ -42,17 +93,17 @@ class RestaurantController extends Controller
             return redirect()->route('restaurant.create');
         }
 
-        // Get selected restaurant from session or use first one
         $selectedRestaurantId = session('selected_restaurant_id', $restaurants->first()->id);
         $restaurant = $restaurants->find($selectedRestaurantId);
 
-        // If selected restaurant doesn't exist or doesn't belong to user, use first one
-        if (!$restaurant) {
+        if (! $restaurant) {
             $restaurant = $restaurants->first();
             session(['selected_restaurant_id' => $restaurant->id]);
         }
 
-        $categories = $restaurant->menuCategories()->with('menuItems')->get();
+        $categories = $restaurant->menuCategories()
+            ->with(['menuItems.optionGroups.options'])
+            ->get();
 
         return view('restaurant.dashboard', compact('restaurant', 'categories', 'restaurants'));
     }
@@ -65,19 +116,18 @@ class RestaurantController extends Controller
     public function selectRestaurant(Request $request, Restaurant $restaurant)
     {
         $request->validate([
-            'restaurant_id' => 'required|exists:restaurants,id'
+            'restaurant_id' => 'required|exists:restaurants,id',
         ]);
 
         $selectedRestaurant = Restaurant::find($request->restaurant_id);
 
-        // Ensure the restaurant belongs to the authenticated user
-        if (!$selectedRestaurant || $selectedRestaurant->user_id !== auth()->id()) {
-            return redirect()->route('restaurant.dashboard')->with('error', 'Unauthorized access to restaurant.');
+        if (! $selectedRestaurant || $selectedRestaurant->user_id !== auth()->id()) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
         }
 
         session(['selected_restaurant_id' => $selectedRestaurant->id]);
 
-        return redirect()->route('restaurant.dashboard')->with('success', 'Restaurant selected successfully!');
+        return $this->ok($request, __('messages.products.flash_saved'));
     }
 
     public function store(Request $request)
@@ -85,16 +135,14 @@ class RestaurantController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $slug = Str::slug($request->name);
-
-        // Ensure unique slug
         $counter = 1;
         $originalSlug = $slug;
         while (Restaurant::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $counter;
+            $slug = $originalSlug.'-'.$counter;
             $counter++;
         }
 
@@ -113,8 +161,12 @@ class RestaurantController extends Controller
 
         $restaurant->save();
 
-        return redirect()->route('restaurant.dashboard')->with('success', 'Restaurant created successfully!');
+        return $this->ok($request, __('messages.products.flash_saved'));
     }
+
+    /* =================================================================
+     * Categories
+     * ================================================================= */
 
     public function storeCategory(Request $request)
     {
@@ -123,92 +175,27 @@ class RestaurantController extends Controller
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
+        if (! $restaurant) {
+            return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
+        }
 
-        MenuCategory::create([
+        $category = MenuCategory::create([
             'name' => $request->name,
             'restaurant_id' => $restaurant->id,
-            'sort_order' => MenuCategory::where('restaurant_id', $restaurant->id)->max('sort_order') + 1
+            'sort_order' => MenuCategory::where('restaurant_id', $restaurant->id)->max('sort_order') + 1,
+            'is_active' => true,
         ]);
 
-        return redirect()->route('restaurant.dashboard')->with('success', 'Category added successfully!');
-    }
-
-    public function storeItem(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'category_id' => 'required|exists:menu_categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        return $this->ok($request, __('messages.products.flash_category_created'), [
+            'category' => [
+                'id' => $category->id,
+                'name' => $category->name,
+            ],
         ]);
-
-        $item = new MenuItem($request->except('image'));
-        $item->menu_category_id = $request->category_id;
-        $item->sort_order = MenuItem::where('menu_category_id', $request->category_id)->max('sort_order') + 1;
-
-        if ($request->hasFile('image')) {
-            $item->image = $this->imageService->uploadAndCompressImage(
-                $request->file('image'),
-                'menu-items',
-                600,
-                80
-            );
-        }
-
-        $item->save();
-
-        return redirect()->route('restaurant.dashboard')->with('success', 'Menu item added successfully!');
     }
 
-    public function updateItem(Request $request, MenuItem $item)
+    public function deleteCategory(Request $request, MenuCategory $category)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        $oldImage = $item->image;
-
-        $item->fill($request->except('image'));
-
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($oldImage) {
-                $this->imageService->deleteImage($oldImage);
-            }
-
-            // Upload new image
-            $item->image = $this->imageService->uploadAndCompressImage(
-                $request->file('image'),
-                'menu-items',
-                600,
-                80
-            );
-        }
-
-        $item->save();
-
-        return redirect()->route('restaurant.dashboard')->with('success', 'Menu item updated successfully!');
-    }
-
-    public function deleteItem(MenuItem $item)
-    {
-        // Delete associated image
-        if ($item->image) {
-            $this->imageService->deleteImage($item->image);
-        }
-
-        $item->delete();
-
-        return redirect()->route('restaurant.dashboard')->with('success', 'Menu item deleted successfully!');
-    }
-
-    public function deleteCategory(MenuCategory $category)
-    {
-        // Delete all associated menu item images
         foreach ($category->menuItems as $item) {
             if ($item->image) {
                 $this->imageService->deleteImage($item->image);
@@ -217,47 +204,192 @@ class RestaurantController extends Controller
 
         $category->delete();
 
-        return redirect()->route('restaurant.dashboard')->with('success', 'Category and all items deleted successfully!');
+        return $this->ok($request, __('messages.products.flash_category_deleted'));
     }
+
+    /* =================================================================
+     * Menu items (with nested option groups)
+     * ================================================================= */
+
+    public function storeItem(MenuItemRequest $request)
+    {
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $this->imageService->uploadAndCompressImage(
+                $request->file('image'),
+                'menu-items',
+                600,
+                80
+            );
+        }
+
+        $item = DB::transaction(function () use ($request, $imagePath) {
+            $item = MenuItem::create([
+                'name' => $request->input('name'),
+                'description' => $request->input('description'),
+                'price' => $request->input('price'),
+                'image' => $imagePath,
+                'menu_category_id' => $request->input('category_id'),
+                'sort_order' => (int) MenuItem::where('menu_category_id', $request->input('category_id'))
+                    ->max('sort_order') + 1,
+                'is_active' => true,
+            ]);
+
+            $this->syncOptionGroups($item, (array) $request->input('option_groups', []));
+
+            return $item;
+        });
+
+        return $this->ok($request, __('messages.products.flash_created'), [
+            'item_id' => $item->id,
+        ]);
+    }
+
+    public function updateItem(MenuItemRequest $request, MenuItem $item)
+    {
+        $oldImage = $item->image;
+        $newImagePath = null;
+
+        if ($request->hasFile('image')) {
+            $newImagePath = $this->imageService->uploadAndCompressImage(
+                $request->file('image'),
+                'menu-items',
+                600,
+                80
+            );
+        }
+
+        DB::transaction(function () use ($request, $item, $oldImage, $newImagePath) {
+            $item->fill([
+                'name' => $request->input('name'),
+                'description' => $request->input('description'),
+                'price' => $request->input('price'),
+            ]);
+
+            if ($newImagePath !== null) {
+                if ($oldImage) {
+                    $this->imageService->deleteImage($oldImage);
+                }
+                $item->image = $newImagePath;
+            }
+
+            $item->save();
+
+            $this->syncOptionGroups($item, (array) $request->input('option_groups', []));
+        });
+
+        return $this->ok($request, __('messages.products.flash_updated'));
+    }
+
+    /**
+     * Persist the nested option_groups[] payload against the item:
+     *   - deletes groups/options no longer present (cascade via FK removes options)
+     *   - upserts remaining groups in order
+     *   - upserts each group's options in order
+     */
+    protected function syncOptionGroups(MenuItem $item, array $groups): void
+    {
+        $keptGroupIds = [];
+
+        foreach (array_values($groups) as $gIdx => $groupData) {
+            $groupId = $groupData['id'] ?? null;
+
+            $payload = [
+                'menu_item_id' => $item->id,
+                'group_type' => $groupData['group_type'] ?? MenuItemOptionGroup::TYPE_SINGLE,
+                'group_name_ar' => $groupData['group_name_ar'] ?? '',
+                'min_choices' => (int) ($groupData['min_choices'] ?? 0),
+                'max_choices' => (int) ($groupData['max_choices'] ?? 1),
+                'is_required' => (bool) ($groupData['is_required'] ?? false),
+                'position' => (int) ($groupData['position'] ?? $gIdx),
+            ];
+
+            if ($groupId && $existing = $item->optionGroups()->find($groupId)) {
+                $existing->update($payload);
+                $group = $existing;
+            } else {
+                $group = $item->optionGroups()->create($payload);
+            }
+
+            $keptGroupIds[] = $group->id;
+
+            $keptOptionIds = [];
+            foreach (array_values($groupData['options'] ?? []) as $oIdx => $opt) {
+                $optPayload = [
+                    'option_group_id' => $group->id,
+                    'option_name_ar' => $opt['option_name_ar'] ?? '',
+                    'price_delta' => (float) ($opt['price_delta'] ?? 0),
+                    'option_note_ar' => $opt['option_note_ar'] ?? null,
+                    'position' => (int) ($opt['position'] ?? $oIdx),
+                    'is_active' => (bool) ($opt['is_active'] ?? true),
+                ];
+
+                if (! empty($opt['id']) && $existingOpt = $group->options()->find($opt['id'])) {
+                    $existingOpt->update($optPayload);
+                    $keptOptionIds[] = $existingOpt->id;
+                } else {
+                    $keptOptionIds[] = $group->options()->create($optPayload)->id;
+                }
+            }
+
+            $group->options()->whereNotIn('id', $keptOptionIds)->delete();
+        }
+
+        $item->optionGroups()->whereNotIn('id', $keptGroupIds)->delete();
+    }
+
+    public function deleteItem(Request $request, MenuItem $item)
+    {
+        if ($item->image) {
+            $this->imageService->deleteImage($item->image);
+        }
+
+        $item->delete();
+
+        return $this->ok($request, __('messages.products.flash_deleted'));
+    }
+
+    /* =================================================================
+     * WhatsApp settings
+     * ================================================================= */
 
     public function toggleWhatsApp(Request $request)
     {
         $restaurant = $this->getSelectedRestaurant();
-
-        if ($restaurant) {
-            $restaurant->whatsapp_orders_enabled = !$restaurant->whatsapp_orders_enabled;
-            $restaurant->save();
-
-            $status = $restaurant->whatsapp_orders_enabled ? 'enabled' : 'disabled';
-            return redirect()->route('restaurant.dashboard')
-                ->with('success', "WhatsApp orders have been {$status}.");
+        if (! $restaurant) {
+            return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
         }
 
-        return redirect()->route('restaurant.dashboard')
-            ->with('error', 'Restaurant not found.');
+        $restaurant->whatsapp_orders_enabled = ! $restaurant->whatsapp_orders_enabled;
+        $restaurant->save();
+
+        return $this->ok($request, __('messages.products.flash_saved'), [
+            'whatsapp_orders_enabled' => (bool) $restaurant->whatsapp_orders_enabled,
+        ]);
     }
 
     public function updateWhatsApp(Request $request)
     {
         $request->validate([
-            'whatsapp_number' => 'required|string|regex:/^\+?[1-9]\d{1,14}$/'
+            'whatsapp_number' => 'required|string|regex:/^\+?[1-9]\d{1,14}$/',
         ], [
-            'whatsapp_number.regex' => 'Please enter a valid WhatsApp number with country code (e.g., +1234567890)'
+            'whatsapp_number.regex' => __('messages.errors.invalid_whatsapp_number'),
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
-
-        if ($restaurant) {
-            $restaurant->whatsapp_number = $request->whatsapp_number;
-            $restaurant->save();
-
-            return redirect()->route('restaurant.dashboard')
-                ->with('success', 'WhatsApp number updated successfully!');
+        if (! $restaurant) {
+            return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
         }
 
-        return redirect()->route('restaurant.dashboard')
-            ->with('error', 'Restaurant not found.');
+        $restaurant->whatsapp_number = $request->whatsapp_number;
+        $restaurant->save();
+
+        return $this->ok($request, __('messages.products.flash_saved'));
     }
+
+    /* =================================================================
+     * Profile & settings
+     * ================================================================= */
 
     public function updateProfile(Request $request)
     {
@@ -265,53 +397,47 @@ class RestaurantController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'remove_logo' => 'nullable|in:1'
+            'remove_logo' => 'nullable|in:1',
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
-
-        if ($restaurant) {
-            $updateData = [
-                'name' => $request->name,
-                'description' => $request->description,
-            ];
-
-            // Handle logo upload/removal
-            if ($request->hasFile('logo')) {
-                // Delete old logo if exists
-                if ($restaurant->logo) {
-                    $this->imageService->deleteImage($restaurant->logo);
-                }
-
-                // Upload new logo
-                $updateData['logo'] = $this->imageService->uploadAndCompressImage(
-                    $request->file('logo'),
-                    'logos',
-                    400,
-                    85
-                );
-            } elseif ($request->has('remove_logo') && $request->remove_logo == '1') {
-                // Remove logo if requested
-                if ($restaurant->logo) {
-                    $this->imageService->deleteImage($restaurant->logo);
-                }
-                $updateData['logo'] = null;
-            }
-
-            $restaurant->update($updateData);
-
-            return redirect()->route('restaurant.dashboard')
-                ->with('success', 'Restaurant profile updated successfully!');
+        if (! $restaurant) {
+            return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
         }
 
-        return redirect()->route('restaurant.dashboard')
-            ->with('error', 'Restaurant not found.');
+        $updateData = [
+            'name' => $request->name,
+            'description' => $request->description,
+        ];
+
+        if ($request->hasFile('logo')) {
+            if ($restaurant->logo) {
+                $this->imageService->deleteImage($restaurant->logo);
+            }
+            $updateData['logo'] = $this->imageService->uploadAndCompressImage(
+                $request->file('logo'),
+                'logos',
+                400,
+                85
+            );
+        } elseif ($request->has('remove_logo') && $request->remove_logo == '1') {
+            if ($restaurant->logo) {
+                $this->imageService->deleteImage($restaurant->logo);
+            }
+            $updateData['logo'] = null;
+        }
+
+        $restaurant->update($updateData);
+
+        return $this->ok($request, __('messages.products.flash_saved'), [
+            'logo_url' => $restaurant->logo ? asset('storage/'.$restaurant->logo) : null,
+        ]);
     }
 
     public function updateSettings(Request $request)
     {
         $request->validate([
-            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'remove_background' => 'nullable|in:1',
             'facebook_url' => 'nullable|url',
             'instagram_url' => 'nullable|url',
@@ -334,61 +460,59 @@ class RestaurantController extends Controller
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
-
-        if ($restaurant) {
-            $updateData = [
-                'facebook_url' => $request->facebook_url,
-                'instagram_url' => $request->instagram_url,
-                'snapchat_url' => $request->snapchat_url,
-                'whatsapp_url' => $request->whatsapp_url,
-                'twitter_url' => $request->twitter_url,
-                'tiktok_url' => $request->tiktok_url,
-                'theme_colors' => [
-                    'primary' => $request->primary_color ?? '#667eea',
-                    'secondary' => $request->secondary_color ?? '#764ba2',
-                    'accent' => $request->accent_color ?? '#4facfe',
-                    'text' => $request->text_color ?? '#ffffff',
-                    'background' => $request->background_color ?? '#0a0e27',
-                    'card' => $request->card_color ?? '#252d56',
-                    'secondary_bg' => $request->secondary_bg ?? '#141b3c',
-                    'tertiary_bg' => $request->tertiary_bg ?? '#1e2749',
-                    'secondary_text' => $request->secondary_text ?? '#e2e8f0',
-                    'muted_text' => $request->muted_text ?? '#94a3b8',
-                    'input_bg' => $request->input_bg ?? '#1e2749',
-                    'input_border' => $request->input_border ?? '#334155',
-                ]
-            ];
-
-            // Handle background image upload/removal
-            if ($request->hasFile('background_image')) {
-                $updateData = [];
-                // Delete old background image if exists
-                if ($restaurant->background_image) {
-                    $this->imageService->deleteImage($restaurant->background_image);
-                }
-
-                // Upload new background image
-                $updateData['background_image'] = $this->imageService->uploadAndCompressImage(
-                    $request->file('background_image'),
-                    'backgrounds',
-                    1920,
-                    80
-                );
-            } elseif ($request->has('remove_background') && $request->remove_background == '1') {
-                // Remove background image if requested
-                if ($restaurant->background_image) {
-                    $updateData = [];
-                    $this->imageService->deleteImage($restaurant->background_image);
-                }
-                $updateData['background_image'] = null;
-            }
-            $restaurant->update($updateData);
-
-            return redirect()->route('restaurant.dashboard')
-                ->with('success', 'Settings updated successfully!');
+        if (! $restaurant) {
+            return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
         }
 
-        return redirect()->route('restaurant.dashboard')
-            ->with('error', 'Restaurant not found.');
+        // Merge: only overwrite fields the form actually submitted so a form
+        // that only updates social links doesn't wipe the theme, and vice versa.
+        $existingColors = $restaurant->theme_colors ?: [];
+        $mergedColors = array_merge($existingColors, array_filter([
+            'primary' => $request->primary_color,
+            'secondary' => $request->secondary_color,
+            'accent' => $request->accent_color,
+            'text' => $request->text_color,
+            'background' => $request->background_color,
+            'card' => $request->card_color,
+            'secondary_bg' => $request->secondary_bg,
+            'tertiary_bg' => $request->tertiary_bg,
+            'secondary_text' => $request->secondary_text,
+            'muted_text' => $request->muted_text,
+            'input_bg' => $request->input_bg,
+            'input_border' => $request->input_border,
+        ], fn ($v) => $v !== null && $v !== ''));
+
+        $updateData = [
+            'facebook_url' => $request->facebook_url ?? $restaurant->facebook_url,
+            'instagram_url' => $request->instagram_url ?? $restaurant->instagram_url,
+            'snapchat_url' => $request->snapchat_url ?? $restaurant->snapchat_url,
+            'whatsapp_url' => $request->whatsapp_url ?? $restaurant->whatsapp_url,
+            'twitter_url' => $request->twitter_url ?? $restaurant->twitter_url,
+            'tiktok_url' => $request->tiktok_url ?? $restaurant->tiktok_url,
+            'theme_colors' => $mergedColors,
+        ];
+
+        if ($request->hasFile('background_image')) {
+            if ($restaurant->background_image) {
+                $this->imageService->deleteImage($restaurant->background_image);
+            }
+            $updateData['background_image'] = $this->imageService->uploadAndCompressImage(
+                $request->file('background_image'),
+                'backgrounds',
+                1920,
+                80
+            );
+        } elseif ($request->has('remove_background') && $request->remove_background == '1') {
+            if ($restaurant->background_image) {
+                $this->imageService->deleteImage($restaurant->background_image);
+            }
+            $updateData['background_image'] = null;
+        }
+
+        $restaurant->update($updateData);
+
+        return $this->ok($request, __('messages.products.flash_saved'), [
+            'background_url' => $restaurant->background_image ? asset('storage/'.$restaurant->background_image) : null,
+        ]);
     }
 }
