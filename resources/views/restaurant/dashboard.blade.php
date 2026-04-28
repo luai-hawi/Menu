@@ -263,7 +263,7 @@
                                                 <div class="dash-item-actions">
                                                     <button type="button"
                                                         @click.stop="
-                                                                document.getElementById('editItemForm').action = `/item/{{ $item->id }}`;
+                                                                document.getElementById('editItemForm').action = `{{ route('item.update', $item) }}`;
                                                                 window.dispatchEvent(new CustomEvent('edititem', {
                                                                     detail: {{ json_encode(['id' => $item->id, 'name' => $item->name, 'price' => $item->price, 'description' => $item->description ?? '', 'image' => $item->image ?? '', 'category_id' => $item->category_id ?? null, 'optionGroups' => $itemGroupsPayload]) }}
                                                                 }))
