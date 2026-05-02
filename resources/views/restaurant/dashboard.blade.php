@@ -461,7 +461,7 @@
 
             {{-- ==================== WHATSAPP TAB ==================== --}}
             <section x-show="tab === 'whatsapp'" x-cloak role="tabpanel" class="dash-tab-panel">
-                <div class="dash-card dash-card-wide">
+                <div class="dash-card dash-card-wide" x-data="{ waEnabled: {{ $restaurant->whatsapp_orders_enabled ? 'true' : 'false' }} }">
                     <header class="dash-card-header">
                         <div class="dash-card-icon dash-icon-green"><i class="fab fa-whatsapp"></i></div>
                         <h3>{{ __('messages.whatsapp_orders') }}</h3>
@@ -476,27 +476,24 @@
                         </div>
                         <label class="dash-switch">
                             <input type="checkbox" {{ $restaurant->whatsapp_orders_enabled ? 'checked' : '' }}
-                                onchange="this.form.requestSubmit()">
+                                @change="waEnabled = $event.target.checked; $el.form.requestSubmit()">
                             <span class="dash-switch-slider"></span>
                         </label>
                     </form>
 
-                    @if ($restaurant->whatsapp_orders_enabled)
-                        <form action="{{ route('restaurant.whatsapp.update') }}" method="POST" data-ajax
-                            class="dash-mt">
-                            @csrf
-                            <div class="dash-field">
-                                <label class="dash-label">{{ __('messages.whatsapp_number') }}</label>
-                                <input type="text" name="whatsapp_number"
-                                    value="{{ $restaurant->whatsapp_number }}"
-                                    placeholder="{{ __('messages.whatsapp_example') }}" class="dash-input" required>
-                            </div>
-                            <button type="submit" class="dash-btn dash-btn-primary">
-                                <i class="fas fa-save"></i>
-                                <span>{{ __('messages.save_whatsapp_number') }}</span>
-                            </button>
-                        </form>
-                    @endif
+                    <form x-show="waEnabled" action="{{ route('restaurant.whatsapp.update') }}" method="POST"
+                        data-ajax class="dash-mt">
+                        @csrf
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('messages.whatsapp_number') }}</label>
+                            <input type="text" name="whatsapp_number" value="{{ $restaurant->whatsapp_number }}"
+                                placeholder="{{ __('messages.whatsapp_example') }}" class="dash-input" required>
+                        </div>
+                        <button type="submit" class="dash-btn dash-btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>{{ __('messages.save_whatsapp_number') }}</span>
+                        </button>
+                    </form>
                 </div>
             </section>
 
