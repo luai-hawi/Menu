@@ -111,6 +111,7 @@ return [
     'notes_placeholder' => 'أي طلبات خاصة أو تعديلات...',
     'your_location' => 'موقعك *',
     'location_placeholder' => 'يرجى تقديم عنوان التسليم...',
+    'location_required' => 'يرجى تقديم موقعك لتوصيل الطلب.',
     'cancel' => 'إلغاء',
     'send_order' => 'إرسال الطلب',
     'thank_you_visiting' => 'شكراً لزيارة قائمتنا',

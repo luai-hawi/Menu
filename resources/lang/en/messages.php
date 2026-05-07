@@ -52,6 +52,7 @@ return [
     'notes_placeholder' => 'Any special requests or modifications...',
     'your_location' => 'Your Location *',
     'location_placeholder' => 'Please provide your delivery address...',
+    'location_required' => 'Please provide your location for delivery.',,
     'cancel' => 'Cancel',
     'send_order' => 'Send Order',
     'thank_you_visiting' => 'Thank you for visiting our menu',

@@ -1273,7 +1273,8 @@
             minSelections: @js(__('messages.errors.min_selections_required', ['min' => ':n'])),
             maxSelections: @js(__('messages.errors.max_selections_exceeded', ['max' => ':n'])),
             requiredGroupMissing: @js(__('messages.errors.required_group_not_answered', ['group' => ':g'])),
-            free: @js(__('messages.products.free'))
+            free: @js(__('messages.products.free')),
+            locationRequired: @js(__('messages.location_required'))
         };
 
         // Global cart store on window so all menuItemCard instances share state.
@@ -1364,11 +1365,13 @@
                         }
                         this.selected[group.id] = [...current];
                     }
-                    // If this item already has a quantity>0 we need to remap its cart key
-                    // because the option set changed.
-                    if (this.quantity > 0) {
-                        this.syncCart(true);
-                    }
+                    // Keep all other cart entries untouched.
+                    // Restore this card's displayed quantity from whatever the
+                    // new selection already has in the cart (0 if nothing yet).
+                    const newKey = cartKeyFor(this.id, this.allSelectedIds);
+                    const existing = window.__menuCart[newKey];
+                    this.quantity = existing ? existing.quantity : 0;
+                    refreshOrderSummaryBar();
                 },
 
                 constraintHint(group) {
@@ -1428,22 +1431,12 @@
                 setQuantity(value) {
                     const n = Math.max(0, Math.min(99, parseInt(value) || 0));
                     this.quantity = n;
-                    this.syncCart(false);
+                    this.syncCart();
                 },
 
-                syncCart(optionChange) {
-                    // Remove any cart entries for this item whose option set
-                    // differs from the current selection (when options changed).
+                syncCart() {
                     const currentIds = this.allSelectedIds;
                     const key = cartKeyFor(this.id, currentIds);
-
-                    if (optionChange) {
-                        Object.keys(window.__menuCart).forEach(k => {
-                            if (k.startsWith(`${this.id}|`) && k !== key) {
-                                delete window.__menuCart[k];
-                            }
-                        });
-                    }
 
                     if (this.quantity > 0) {
                         const unit = this.computedPrice;
@@ -1531,7 +1524,7 @@
             const notes = document.getElementById('orderNotes').value;
             const location = document.getElementById('orderLocation').value;
             if (!location.trim()) {
-                alert('Please provide your location for delivery.');
+                alert(translations.locationRequired);
                 return;
             }
 

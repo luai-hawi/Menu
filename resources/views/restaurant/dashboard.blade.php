@@ -2090,6 +2090,7 @@
             gap: 0.5rem;
             cursor: pointer;
             transition: border-color 0.2s;
+            position: relative; /* contain the absolute-positioned color input */
         }
 
         .dash-color-field:hover {
@@ -2104,8 +2105,23 @@
         }
 
         .dash-color-input {
-            display: none;
-            /* hidden, triggered by clicking label */
+            /* Visually hidden but in the render tree so the native color dialog can open.
+               pointer-events left enabled so the label→input activation works in all browsers. */
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            border: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Prevent app.css generic input:focus from shifting the hidden color swatch */
+        .dash-color-input:focus {
+            transform: none !important;
+            box-shadow: none !important;
+            outline: none !important;
         }
 
         .dash-color-field-info {
