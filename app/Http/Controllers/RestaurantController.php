@@ -142,7 +142,7 @@ class RestaurantController extends Controller
         $counter = 1;
         $originalSlug = $slug;
         while (Restaurant::where('slug', $slug)->exists()) {
-            $slug = $originalSlug.'-'.$counter;
+            $slug = $originalSlug . '-' . $counter;
             $counter++;
         }
 
@@ -430,33 +430,64 @@ class RestaurantController extends Controller
         $restaurant->update($updateData);
 
         return $this->ok($request, __('messages.products.flash_saved'), [
-            'logo_url' => $restaurant->logo ? asset('storage/'.$restaurant->logo) : null,
+            'logo_url' => $restaurant->logo ? asset('storage/' . $restaurant->logo) : null,
         ]);
     }
 
     public function updateSettings(Request $request)
     {
+        $colorRule = 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/';
         $request->validate([
-            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
-            'remove_background' => 'nullable|in:1',
-            'facebook_url' => 'nullable|url',
-            'instagram_url' => 'nullable|url',
-            'snapchat_url' => 'nullable|url',
-            'whatsapp_url' => 'nullable|url',
-            'twitter_url' => 'nullable|url',
-            'tiktok_url' => 'nullable|url',
-            'primary_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'secondary_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'accent_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'text_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'background_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'card_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'secondary_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'tertiary_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'secondary_text' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'muted_text' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'input_bg' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'input_border' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'background_image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'remove_background'  => 'nullable|in:1',
+            'facebook_url'       => 'nullable|url',
+            'instagram_url'      => 'nullable|url',
+            'snapchat_url'       => 'nullable|url',
+            'whatsapp_url'       => 'nullable|url',
+            'twitter_url'        => 'nullable|url',
+            'tiktok_url'         => 'nullable|url',
+            // ── New comprehensive color tokens ──
+            'page_bg'             => $colorRule,
+            'page_bg_2'           => $colorRule,
+            'page_bg_3'           => $colorRule,
+            'header_bg_start'     => $colorRule,
+            'header_bg_end'       => $colorRule,
+            'restaurant_name'     => $colorRule,
+            'restaurant_tagline'  => $colorRule,
+            'text_primary'        => $colorRule,
+            'text_secondary'      => $colorRule,
+            'text_muted'          => $colorRule,
+            'text_price'          => $colorRule,
+            'text_option_price'   => $colorRule,
+            'card_bg'             => $colorRule,
+            'card_border'         => $colorRule,
+            'card_border_hover'   => $colorRule,
+            'card_accent_bar'     => $colorRule,
+            'card_accent_bar_end' => $colorRule,
+            'btn_primary'         => $colorRule,
+            'btn_primary_end'     => $colorRule,
+            'btn_qty'             => $colorRule,
+            'btn_qty_end'         => $colorRule,
+            'btn_order'           => $colorRule,
+            'btn_order_end'       => $colorRule,
+            'pill_bg'             => $colorRule,
+            'pill_border'         => $colorRule,
+            'pill_text'           => $colorRule,
+            'pill_active'         => $colorRule,
+            'pill_active_end'     => $colorRule,
+            'pill_active_text'    => $colorRule,
+            'option_group_bg'     => $colorRule,
+            'option_selected_bg'  => $colorRule,
+            'option_input_accent' => $colorRule,
+            'input_bg'            => $colorRule,
+            'input_border'        => $colorRule,
+            'input_focus'         => $colorRule,
+            'input_text'          => $colorRule,
+            'footer_bg'           => $colorRule,
+            'footer_text'         => $colorRule,
+            'footer_heading'      => $colorRule,
+            'border'              => $colorRule,
+            'border_secondary'    => $colorRule,
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
@@ -464,32 +495,69 @@ class RestaurantController extends Controller
             return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
         }
 
-        // Merge: only overwrite fields the form actually submitted so a form
-        // that only updates social links doesn't wipe the theme, and vice versa.
+        // Color token keys (match form field names = theme_colors array keys)
+        $colorKeys = [
+            'page_bg',
+            'page_bg_2',
+            'page_bg_3',
+            'header_bg_start',
+            'header_bg_end',
+            'restaurant_name',
+            'restaurant_tagline',
+            'text_primary',
+            'text_secondary',
+            'text_muted',
+            'text_price',
+            'text_option_price',
+            'card_bg',
+            'card_border',
+            'card_border_hover',
+            'card_accent_bar',
+            'card_accent_bar_end',
+            'btn_primary',
+            'btn_primary_end',
+            'btn_qty',
+            'btn_qty_end',
+            'btn_order',
+            'btn_order_end',
+            'pill_bg',
+            'pill_border',
+            'pill_text',
+            'pill_active',
+            'pill_active_end',
+            'pill_active_text',
+            'option_group_bg',
+            'option_selected_bg',
+            'option_input_accent',
+            'input_bg',
+            'input_border',
+            'input_focus',
+            'input_text',
+            'footer_bg',
+            'footer_text',
+            'footer_heading',
+            'border',
+            'border_secondary',
+        ];
+
         $existingColors = $restaurant->theme_colors ?: [];
-        $mergedColors = array_merge($existingColors, array_filter([
-            'primary' => $request->primary_color,
-            'secondary' => $request->secondary_color,
-            'accent' => $request->accent_color,
-            'text' => $request->text_color,
-            'background' => $request->background_color,
-            'card' => $request->card_color,
-            'secondary_bg' => $request->secondary_bg,
-            'tertiary_bg' => $request->tertiary_bg,
-            'secondary_text' => $request->secondary_text,
-            'muted_text' => $request->muted_text,
-            'input_bg' => $request->input_bg,
-            'input_border' => $request->input_border,
-        ], fn ($v) => $v !== null && $v !== ''));
+        $newColors = [];
+        foreach ($colorKeys as $key) {
+            $val = $request->input($key);
+            if ($val !== null && $val !== '') {
+                $newColors[$key] = $val;
+            }
+        }
+        $mergedColors = array_merge($existingColors, $newColors);
 
         $updateData = [
-            'facebook_url' => $request->facebook_url ?? $restaurant->facebook_url,
+            'facebook_url'  => $request->facebook_url  ?? $restaurant->facebook_url,
             'instagram_url' => $request->instagram_url ?? $restaurant->instagram_url,
-            'snapchat_url' => $request->snapchat_url ?? $restaurant->snapchat_url,
-            'whatsapp_url' => $request->whatsapp_url ?? $restaurant->whatsapp_url,
-            'twitter_url' => $request->twitter_url ?? $restaurant->twitter_url,
-            'tiktok_url' => $request->tiktok_url ?? $restaurant->tiktok_url,
-            'theme_colors' => $mergedColors,
+            'snapchat_url'  => $request->snapchat_url  ?? $restaurant->snapchat_url,
+            'whatsapp_url'  => $request->whatsapp_url  ?? $restaurant->whatsapp_url,
+            'twitter_url'   => $request->twitter_url   ?? $restaurant->twitter_url,
+            'tiktok_url'    => $request->tiktok_url    ?? $restaurant->tiktok_url,
+            'theme_colors'  => $mergedColors,
         ];
 
         if ($request->hasFile('background_image')) {
@@ -512,7 +580,7 @@ class RestaurantController extends Controller
         $restaurant->update($updateData);
 
         return $this->ok($request, __('messages.products.flash_saved'), [
-            'background_url' => $restaurant->background_image ? asset('storage/'.$restaurant->background_image) : null,
+            'background_url' => $restaurant->background_image ? asset('storage/' . $restaurant->background_image) : null,
         ]);
     }
 }

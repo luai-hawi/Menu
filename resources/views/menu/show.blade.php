@@ -16,91 +16,141 @@
         <style>body { font-family: 'Cairo', 'Inter', sans-serif !important; }</style>
     @endif
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+
     <style>
-        
-        @if($restaurant->theme_colors)
+        @php
+            $tc = $restaurant->theme_colors ?: [];
+            // Helper: read key with fallback
+            $cv = fn(string $k, string $d) => $tc[$k] ?? $d;
+            // Helper: hex to "r,g,b" string
+            $rgb = function(string $hex) {
+                $r = sscanf($hex, "#%02x%02x%02x");
+                return $r ? implode(',', $r) : '0,0,0';
+            };
+
+            // ── All 41 controllable color tokens ──────────────────────────────
+            $page_bg          = $cv('page_bg',          '#0a0e27');
+            $page_bg_2        = $cv('page_bg_2',        '#141b3c');
+            $page_bg_3        = $cv('page_bg_3',        '#1e2749');
+            $header_bg_start  = $cv('header_bg_start',  '#0a0e27');
+            $header_bg_end    = $cv('header_bg_end',    '#1e2749');
+            $rest_name        = $cv('restaurant_name',  '#ffffff');
+            $rest_tagline     = $cv('restaurant_tagline','#e2e8f0');
+            $text_primary     = $cv('text_primary',     '#ffffff');
+            $text_secondary   = $cv('text_secondary',   '#e2e8f0');
+            $text_muted       = $cv('text_muted',       '#94a3b8');
+            $text_price       = $cv('text_price',       '#22d3ee');
+            $text_opt_price   = $cv('text_option_price','#86efac');
+            $card_bg          = $cv('card_bg',          '#1a2254');
+            $card_border      = $cv('card_border',      '#334155');
+            $card_border_hov  = $cv('card_border_hover','#6366f1');
+            $card_bar         = $cv('card_accent_bar',  '#6366f1');
+            $card_bar_end     = $cv('card_accent_bar_end','#8b5cf6');
+            $btn_p            = $cv('btn_primary',      '#6366f1');
+            $btn_p_end        = $cv('btn_primary_end',  '#8b5cf6');
+            $btn_qty          = $cv('btn_qty',          '#6366f1');
+            $btn_qty_end      = $cv('btn_qty_end',      '#8b5cf6');
+            $btn_order        = $cv('btn_order',        '#22c55e');
+            $btn_order_end    = $cv('btn_order_end',    '#16a34a');
+            $pill_bg          = $cv('pill_bg',          '#1a2254');
+            $pill_border      = $cv('pill_border',      '#334155');
+            $pill_text        = $cv('pill_text',        '#94a3b8');
+            $pill_active      = $cv('pill_active',      '#6366f1');
+            $pill_active_end  = $cv('pill_active_end',  '#8b5cf6');
+            $pill_active_text = $cv('pill_active_text', '#ffffff');
+            $opt_group_bg     = $cv('option_group_bg',  '#0f1631');
+            $opt_sel_bg       = $cv('option_selected_bg','#2e3a8c');
+            $opt_accent       = $cv('option_input_accent','#6366f1');
+            $input_bg         = $cv('input_bg',         '#1e2749');
+            $input_border     = $cv('input_border',     '#334155');
+            $input_focus      = $cv('input_focus',      '#6366f1');
+            $input_text       = $cv('input_text',       '#ffffff');
+            $footer_bg        = $cv('footer_bg',        '#070b1e');
+            $footer_text      = $cv('footer_text',      '#94a3b8');
+            $footer_heading   = $cv('footer_heading',   '#ffffff');
+            $border           = $cv('border',           '#334155');
+            $border_sec       = $cv('border_secondary', '#475569');
+        @endphp
         :root {
-            --primary-color: {{ $restaurant->theme_colors['primary'] ?? '#667eea' }};
-            --secondary-color: {{ $restaurant->theme_colors['secondary'] ?? '#764ba2' }};
-            --accent-color: {{ $restaurant->theme_colors['accent'] ?? '#4facfe' }};
-            --text-primary: {{ $restaurant->theme_colors['text'] ?? '#ffffff' }};
-            --bg-primary: {{ $restaurant->theme_colors['background'] ?? '#0a0e27' }};
-            --bg-card: {{ $restaurant->theme_colors['card'] ?? '#252d56' }};
+            /* ── Page backgrounds ── */
+            --color-page-bg:         {{ $page_bg }};
+            --color-page-bg-2:       {{ $page_bg_2 }};
+            --color-page-bg-3:       {{ $page_bg_3 }};
+            /* ── Header ── */
+            --color-header-bg-start: {{ $header_bg_start }};
+            --color-header-bg-end:   {{ $header_bg_end }};
+            --color-restaurant-name: {{ $rest_name }};
+            --color-restaurant-tagline: {{ $rest_tagline }};
+            /* ── Text ── */
+            --color-text-primary:    {{ $text_primary }};
+            --color-text-secondary:  {{ $text_secondary }};
+            --color-text-muted:      {{ $text_muted }};
+            --color-text-price:      {{ $text_price }};
+            --color-text-option-price: {{ $text_opt_price }};
+            /* ── Cards ── */
+            --color-card-bg:            {{ $card_bg }};
+            --color-card-border:        {{ $card_border }};
+            --color-card-border-hover:  {{ $card_border_hov }};
+            --color-card-accent-bar:    {{ $card_bar }};
+            --color-card-accent-bar-end:{{ $card_bar_end }};
+            /* ── Buttons ── */
+            --color-btn-primary:        {{ $btn_p }};
+            --color-btn-primary-end:    {{ $btn_p_end }};
+            --color-btn-qty:            {{ $btn_qty }};
+            --color-btn-qty-end:        {{ $btn_qty_end }};
+            --color-btn-order:          {{ $btn_order }};
+            --color-btn-order-end:      {{ $btn_order_end }};
+            /* ── Category pills ── */
+            --color-pill-bg:            {{ $pill_bg }};
+            --color-pill-border:        {{ $pill_border }};
+            --color-pill-text:          {{ $pill_text }};
+            --color-pill-active:        {{ $pill_active }};
+            --color-pill-active-end:    {{ $pill_active_end }};
+            --color-pill-active-text:   {{ $pill_active_text }};
+            /* ── Options ── */
+            --color-option-group-bg:    {{ $opt_group_bg }};
+            --color-option-selected-bg: {{ $opt_sel_bg }};
+            --color-option-input-accent:{{ $opt_accent }};
+            /* ── Inputs / search ── */
+            --color-input-bg:           {{ $input_bg }};
+            --color-input-border:       {{ $input_border }};
+            --color-input-focus:        {{ $input_focus }};
+            --color-input-text:         {{ $input_text }};
+            /* ── Footer ── */
+            --color-footer-bg:          {{ $footer_bg }};
+            --color-footer-text:        {{ $footer_text }};
+            --color-footer-heading:     {{ $footer_heading }};
+            /* ── Borders ── */
+            --color-border:             {{ $border }};
+            --color-border-secondary:   {{ $border_sec }};
 
-            --primary-color-rgb: {{ implode(',', sscanf($restaurant->theme_colors['primary'] ?? '#667eea', "#%02x%02x%02x") ?: [102, 126, 234]) }};
-            --secondary-color-rgb: {{ implode(',', sscanf($restaurant->theme_colors['secondary'] ?? '#764ba2', "#%02x%02x%02x") ?: [118, 75, 162]) }};
-            --bg-primary-rgb: {{ implode(',', sscanf($restaurant->theme_colors['background'] ?? '#0a0e27', "#%02x%02x%02x") ?: [10, 14, 39]) }};
-            --bg-card-rgb: {{ implode(',', sscanf($restaurant->theme_colors['card'] ?? '#252d56', "#%02x%02x%02x") ?: [37, 45, 86]) }};
+            /* ── Derived RGB versions (for rgba() usage) ── */
+            --color-btn-primary-rgb:       {{ $rgb($btn_p) }};
+            --color-btn-qty-rgb:           {{ $rgb($btn_qty) }};
+            --color-btn-order-rgb:         {{ $rgb($btn_order) }};
+            --color-card-bg-rgb:           {{ $rgb($card_bg) }};
+            --color-page-bg-rgb:           {{ $rgb($page_bg) }};
+            --color-card-border-hover-rgb: {{ $rgb($card_border_hov) }};
 
-            --primary-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            --accent-gradient: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-color) 100%);
+            /* ── Compound gradients ── */
+            --gradient-btn-primary: linear-gradient(135deg, var(--color-btn-primary) 0%, var(--color-btn-primary-end) 100%);
+            --gradient-btn-qty:     linear-gradient(135deg, var(--color-btn-qty)     0%, var(--color-btn-qty-end)     100%);
+            --gradient-btn-order:   linear-gradient(135deg, var(--color-btn-order)   0%, var(--color-btn-order-end)   100%);
+            --gradient-card-bar:    linear-gradient(135deg, var(--color-card-accent-bar) 0%, var(--color-card-accent-bar-end) 100%);
+            --gradient-pill-active: linear-gradient(135deg, var(--color-pill-active) 0%, var(--color-pill-active-end) 100%);
 
-            --bg-secondary: {{ $restaurant->theme_colors['secondary_bg'] ?? '#141b3c' }};
-            --bg-tertiary: {{ $restaurant->theme_colors['tertiary_bg'] ?? '#1e2749' }};
-            --bg-elevated: #2a3365;
-
-            --text-secondary: {{ $restaurant->theme_colors['secondary_text'] ?? '#e2e8f0' }};
-            --text-muted: {{ $restaurant->theme_colors['muted_text'] ?? '#94a3b8' }};
-
-            --border-primary: #334155;
-            --border-secondary: #475569;
-            --border-accent: #64748b;
-
-            --input-bg: {{ $restaurant->theme_colors['input_bg'] ?? '#1e2749' }};
-            --input-border: {{ $restaurant->theme_colors['input_border'] ?? '#334155' }};
-            --language-bg: {{ $restaurant->theme_colors['language_bg'] ?? '#1e2749' }};
-
+            /* ── Shadows / radii (not color-controlled, structural) ── */
             --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.15);
             --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.2);
             --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.25);
-
             --radius-lg: 16px;
             --radius-xl: 24px;
         }
 
         body {
-            background: var(--bg-primary) !important;
-            color: var(--text-primary) !important;
+            background: var(--color-page-bg) !important;
+            color: var(--color-text-primary) !important;
         }
-        @else
-        :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --accent-color: #4facfe;
-            --text-primary: #ffffff;
-            --bg-primary: #0a0e27;
-            --bg-card: #252d56;
-
-            --primary-color-rgb: 102,126,234;
-            --secondary-color-rgb: 118,75,162;
-            --bg-primary-rgb: 10,14,39;
-            --bg-card-rgb: 37,45,86;
-
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-
-            --bg-secondary: #141b3c;
-            --bg-tertiary: #1e2749;
-            --bg-elevated: #2a3365;
-
-            --text-secondary: #e2e8f0;
-            --text-muted: #94a3b8;
-
-            --border-primary: #334155;
-            --border-secondary: #475569;
-            --border-accent: #64748b;
-
-            --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.15);
-            --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.2);
-            --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.25);
-
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-        }
-        @endif
 
         * {
             box-sizing: border-box;
@@ -109,8 +159,6 @@
         }
 
         body {
-            background: var(--bg-primary) !important;
-            color: var(--text-primary) !important;
             font-family: 'Inter', sans-serif;
             line-height: 1.6;
             scroll-behavior: smooth;
@@ -118,7 +166,7 @@
         }
 
         .header-gradient {
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--secondary-bg) 50%, var(--tertiary-bg) 100%) !important;
+            background: linear-gradient(135deg, var(--color-header-bg-start) 0%, var(--color-page-bg-2) 50%, var(--color-header-bg-end) 100%) !important;
             position: relative;
             overflow: hidden;
             min-height: 70vh;
@@ -131,8 +179,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at 30% 20%, rgba(var(--primary-color-rgb), 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(var(--secondary-color-rgb), 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 30% 20%, rgba(var(--color-btn-primary-rgb), 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(var(--color-btn-primary-rgb), 0.08) 0%, transparent 50%);
             pointer-events: none;
         }
 
@@ -141,7 +189,7 @@
             height: 180px !important;
             object-fit: cover !important;
             border-radius: 50% !important;
-            border: 4px solid var(--border-secondary) !important;
+            border: 4px solid var(--color-border-secondary) !important;
             box-shadow: var(--shadow-lg) !important;
             transition: all 0.4s ease !important;
         }
@@ -150,9 +198,9 @@
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            border: 4px solid var(--border-secondary);
+            border: 4px solid var(--color-border-secondary);
             box-shadow: var(--shadow-lg);
-            background: var(--primary-gradient);
+            background: var(--gradient-btn-primary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -166,8 +214,8 @@
         }
 
         .menu-item-card {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-primary) !important;
+            background: var(--color-card-bg) !important;
+            border: 1px solid var(--color-card-border) !important;
             border-radius: var(--radius-xl) !important;
             overflow: hidden !important;
             box-shadow: var(--shadow-md) !important;
@@ -186,14 +234,14 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: var(--accent-gradient);
+            background: var(--gradient-card-bar);
             z-index: 1;
         }
 
         .menu-item-card:hover {
             transform: translateY(-8px) scale(1.02) !important;
-            box-shadow: var(--shadow-xl), 0 0 40px rgba(var(--primary-color-rgb), 0.2) !important;
-            border-color: var(--border-accent) !important;
+            box-shadow: var(--shadow-xl), 0 0 40px rgba(var(--color-card-border-hover-rgb), 0.25) !important;
+            border-color: var(--color-card-border-hover) !important;
         }
 
         .menu-image {
@@ -210,7 +258,7 @@
         .menu-image-placeholder {
             width: 100% !important;
             height: 200px !important;
-            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-elevated)) !important;
+            background: linear-gradient(135deg, var(--color-page-bg-3), var(--color-page-bg-2)) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -231,13 +279,13 @@
         .menu-item-title {
             font-size: 1.5rem !important;
             font-weight: 700 !important;
-            color: var(--text-primary) !important;
+            color: var(--color-text-primary) !important;
             margin-bottom: 0.5rem !important;
             line-height: 1.3 !important;
         }
 
         .menu-item-description {
-            color: var(--text-muted) !important;
+            color: var(--color-text-muted) !important;
             font-size: 0.95rem !important;
             line-height: 1.5 !important;
             margin-bottom: 1rem !important;
@@ -259,8 +307,8 @@
             gap: 0.75rem;
         }
         .option-group {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border-primary);
+            background: var(--color-option-group-bg);
+            border: 1px solid var(--color-border);
             border-radius: 10px;
             padding: 0.75rem;
         }
@@ -269,7 +317,7 @@
             align-items: center;
             gap: 0.5rem;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             font-size: 0.95rem;
             margin-bottom: 0.5rem;
         }
@@ -300,20 +348,20 @@
             transition: background 0.15s ease;
             font-size: 0.85rem;
         }
-        .option-choice:hover       { background: rgba(255, 255, 255, 0.04); }
-        .option-chosen             { background: rgba(102, 126, 234, 0.15); }
-        .option-choice input       { accent-color: #6366f1; }
-        .option-choice-name        { color: var(--text-primary); }
+        .option-choice:hover       { background: rgba(var(--color-btn-primary-rgb), 0.06); }
+        .option-chosen             { background: var(--color-option-selected-bg); }
+        .option-choice input       { accent-color: var(--color-option-input-accent); }
+        .option-choice-name        { color: var(--color-text-primary); }
         .option-choice-note {
             grid-column: 2 / 3;
             grid-row: 2;
             font-size: 0.72rem;
-            color: var(--text-muted);
+            color: var(--color-text-muted);
             font-style: italic;
         }
         .option-choice-price       {
             font-weight: 600;
-            color: #86efac;
+            color: var(--color-text-option-price);
             font-variant-numeric: tabular-nums;
         }
         .option-group-error {
@@ -328,7 +376,7 @@
         .price-block { display: flex; flex-direction: column; align-items: flex-start; }
         .base-price-label {
             font-size: 0.7rem;
-            color: var(--text-muted);
+            color: var(--color-text-muted);
             text-decoration: line-through;
             opacity: 0.7;
         }
@@ -340,10 +388,11 @@
         .price {
             font-size: 1.75rem !important;
             font-weight: 800 !important;
-            background: var(--success-gradient) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
+            color: var(--color-text-price) !important;
+            -webkit-text-fill-color: var(--color-text-price) !important;
+            background: none !important;
+            -webkit-background-clip: unset !important;
+            background-clip: unset !important;
             font-family: 'Inter', sans-serif !important;
             letter-spacing: -0.02em !important;
         }
@@ -352,19 +401,18 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-primary);
+            background: var(--color-input-bg);
+            border: 1px solid var(--color-input-border);
             border-radius: 12px;
             padding: 0.5rem;
             margin-left: 0.5rem;
             margin-right: 0.5rem;
-
         }
 
         .quantity-btn {
-            background: var(--primary-gradient);
+            background: var(--gradient-btn-qty);
             border: none;
-            color: white;
+            color: var(--color-pill-active-text);
             width: 32px;
             height: 32px;
             border-radius: 8px;
@@ -379,7 +427,7 @@
 
         .quantity-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
+            box-shadow: 0 4px 12px rgba(var(--color-btn-qty-rgb), 0.3);
         }
 
         .quantity-btn:disabled {
@@ -388,18 +436,31 @@
             transform: none;
         }
 
-        .quantity-input {
-            min-width: 50px;
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
+        input.quantity-input[type="number"],
+        input.quantity-input[type="number"]:focus {
+            min-width: 40px;
+            width: 40px;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+            color: var(--color-input-text) !important;
+            -webkit-text-fill-color: var(--color-input-text) !important;
             font-weight: 600;
             font-size: 1.1rem;
             text-align: center;
             outline: none;
-            margin-left: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            backdrop-filter: none !important;
+            /* Hide native browser number spinner so the digit stays centred */
+            -moz-appearance: textfield;
+        }
+        input.quantity-input[type="number"]::-webkit-outer-spin-button,
+        input.quantity-input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         .category-header {
@@ -412,10 +473,7 @@
             font-family: 'Playfair Display', serif !important;
             font-size: 3rem !important;
             font-weight: 700 !important;
-            background: var(--primary-gradient) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            background-clip: text !important;
+            color: var(--color-btn-primary) !important;
             margin-bottom: 0.5rem !important;
         }
 
@@ -426,7 +484,7 @@
             left: 0;
             width: 100px;
             height: 4px;
-            background: var(--accent-gradient);
+            background: var(--gradient-card-bar);
             border-radius: 2px;
         }
 
@@ -442,8 +500,8 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--bg-card);
-            border-top: 2px solid var(--border-secondary);
+            background: var(--color-card-bg);
+            border-top: 2px solid var(--color-border-secondary);
             padding: 1rem;
             box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(20px);
@@ -457,8 +515,8 @@
         }
 
         .order-btn {
-            background: linear-gradient(135deg, #25d366, #128c7e);
-            color: white;
+            background: var(--gradient-btn-order);
+            color: var(--color-pill-active-text);
             border: none;
             padding: 1rem 2rem;
             border-radius: 12px;
@@ -477,7 +535,7 @@
 
         .order-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.3);
+            box-shadow: 0 8px 25px rgba(var(--color-btn-order-rgb), 0.35);
         }
 
         .modal {
@@ -504,8 +562,8 @@
         }
 
         .modal-content {
-            background: var(--bg-card);
-            border: 1px solid var(--border-secondary);
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border-secondary);
             border-radius: var(--radius-xl);
             padding: 2rem;
             max-width: 500px;
@@ -524,11 +582,11 @@
             text-align: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-primary);
+            border-bottom: 1px solid var(--color-border);
         }
 
         .modal-header h3 {
-            color: var(--text-primary);
+            color: var(--color-text-primary);
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
@@ -539,8 +597,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 1rem;
-            border-bottom: 1px solid var(--border-primary);
-            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--color-border);
+            background: var(--color-page-bg-3);
             border-radius: 12px;
             margin-bottom: 1rem;
         }
@@ -556,16 +614,16 @@
 
         .form-label {
             display: block;
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             font-weight: 600;
             margin-bottom: 0.5rem;
         }
 
         .form-input {
             width: 100%;
-            background: var(--input-bg);
-            border: 2px solid var(--input-border);
-            color: var(--text-primary);
+            background: var(--color-input-bg);
+            border: 2px solid var(--color-input-border);
+            color: var(--color-input-text);
             padding: 1rem;
             border-radius: 12px;
             font-size: 1rem;
@@ -573,8 +631,8 @@
         }
 
         .form-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+            border-color: var(--color-input-focus);
+            box-shadow: 0 0 0 3px rgba(var(--color-btn-primary-rgb), 0.1);
             outline: none;
         }
 
@@ -601,24 +659,24 @@
         }
 
         .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-secondary);
-            border: 2px solid var(--border-primary);
+            background: var(--color-page-bg-3);
+            color: var(--color-text-secondary);
+            border: 2px solid var(--color-border);
         }
 
         .btn-secondary:hover {
-            background: var(--bg-elevated);
-            border-color: var(--border-secondary);
+            background: var(--color-page-bg-2);
+            border-color: var(--color-border-secondary);
         }
 
         .btn-whatsapp {
-            background: linear-gradient(135deg, #25d366, #128c7e);
-            color: white;
+            background: var(--gradient-btn-order);
+            color: var(--color-pill-active-text);
         }
 
         .btn-whatsapp:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.3);
+            box-shadow: 0 8px 25px rgba(var(--color-btn-order-rgb), 0.35);
         }
 
         @media (max-width: 600px) {
@@ -668,11 +726,11 @@
             .responsive-grid {
                 gap: 0.75rem !important;
             }
-            
+
             .menu-item-content {
                 padding: 0.75rem;
             }
-            
+
             .restaurant-logo,
             .restaurant-logo-placeholder {
                 width: 120px !important;
@@ -755,10 +813,10 @@
         }
 
         .glass {
-            background: rgba(var(--bg-card-rgb), 0.25) !important;
+            background: rgba(var(--color-card-bg-rgb), 0.25) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(var(--color-btn-primary-rgb), 0.15) !important;
         }
 
         .empty-state {
@@ -773,10 +831,10 @@
         }
         .category-pill {
     padding: 0.5rem 1rem;
-    background: var(--bg-card);
-    border: 2px solid var(--border-primary);
+    background: var(--color-pill-bg);
+    border: 2px solid var(--color-pill-border);
     border-radius: 25px;
-    color: var(--text-secondary);
+    color: var(--color-pill-text);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
@@ -786,11 +844,11 @@
 
 .category-pill:hover,
 .category-pill.active {
-    background: var(--primary-gradient);
+    background: var(--gradient-pill-active);
     border-color: transparent;
-    color: white;
+    color: var(--color-pill-active-text);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
+    box-shadow: 0 4px 12px rgba(var(--color-btn-primary-rgb), 0.3);
 }
 
 .social-links {
@@ -827,30 +885,31 @@
 .social-link.whatsapp { background: linear-gradient(135deg, #25d366, #128c7e); }
 
 /* Theme overrides for Tailwind classes */
-.text-white { color: var(--text-primary) !important; }
-.text-gray-300 { color: var(--text-secondary) !important; }
-.text-gray-400 { color: var(--text-muted) !important; }
-.text-gray-500 { color: var(--text-muted) !important; }
-.bg-gray-800 { background: var(--input-bg) !important; }
-.bg-gray-700 { background: var(--bg-elevated) !important; }
-.border-gray-600 { border-color: var(--input-border) !important; }
-.text-gray-400 { color: var(--text-muted) !important; }
-.placeholder-gray-400::placeholder { color: var(--text-muted) !important; }
-.focus\:border-blue-500:focus { border-color: var(--primary-color) !important; }
-.focus\:ring-blue-500\/20:focus { box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1) !important; }
+.text-white { color: var(--color-text-primary) !important; }
+.text-gray-300 { color: var(--color-text-secondary) !important; }
+.text-gray-400 { color: var(--color-text-muted) !important; }
+.text-gray-500 { color: var(--color-text-muted) !important; }
+.bg-gray-800 { background: var(--color-input-bg) !important; }
+.bg-gray-700 { background: var(--color-page-bg-3) !important; }
+.border-gray-600 { border-color: var(--color-input-border) !important; }
+.text-green-400 { color: var(--color-text-price) !important; }
+.placeholder-gray-400::placeholder { color: var(--color-text-muted) !important; }
+.focus\:border-blue-500:focus { border-color: var(--color-input-focus) !important; }
+.focus\:ring-blue-500\/20:focus { box-shadow: 0 0 0 3px rgba(var(--color-btn-primary-rgb), 0.1) !important; }
 
 /* Specific overrides for search bar and language selector */
-#menuSearch { background: var(--input-bg) !important; }
-#language-select { background: var(--input-bg) !important; }
+#menuSearch { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; border-color: var(--color-input-border) !important; }
+#language-select { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; }
+#menuSearch::placeholder { color: var(--color-text-muted) !important; }
 
 </style>
 </head>
 <body>
     <!-- Language Selector -->
     <div style="position: absolute; top: 16px; left: 16px; z-index: 100;">
-        <div class="rounded-lg p-2 flex items-center space-x-2" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.2);">
-            <i class="fas fa-globe" style="color: var(--text-primary);"></i>
-            <select id="language-select" style="background: transparent; color: var(--text-primary); border: none; outline: none; font-size: 0.875rem;">
+        <div class="rounded-lg p-2 flex items-center space-x-2" style="background: transparent; border: 1px solid rgba(var(--color-btn-primary-rgb), 0.3);">
+            <i class="fas fa-globe" style="color: var(--color-text-primary);"></i>
+            <select id="language-select" style="background: transparent; color: var(--color-text-primary); border: none; outline: none; font-size: 0.875rem;">
                 <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>English</option>
                 <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>العربية</option>
             </select>
@@ -864,7 +923,7 @@
         </div>
     </div>
 
-    
+
 
     <!-- Header -->
     <div class="header-gradient">
@@ -881,14 +940,14 @@
                          class="restaurant-logo mx-auto mb-8 animate-bounce-in">
                 @else
                     <div class="restaurant-logo-placeholder mx-auto mb-8 animate-bounce-in">
-                        <span class="text-white text-5xl font-bold">{{ substr($restaurant->name, 0, 1) }}</span>
+                        <span style="color: var(--color-pill-active-text); font-size: 3rem; font-weight: 700;">{{ substr($restaurant->name, 0, 1) }}</span>
                     </div>
                 @endif
-                <h1 class="text-6xl md:text-7xl font-bold text-white mb-6 font-display animate-slide-up">
+                <h1 class="text-6xl md:text-7xl font-bold mb-6 font-display animate-slide-up" style="color: var(--color-restaurant-name);">
                     {{ $restaurant->name }}
                 </h1>
                 @if($restaurant->description)
-                    <p class="text-gray-300 text-xl md:text-2xl max-w-3xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed">
+                    <p class="text-xl md:text-2xl max-w-3xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed" style="color: var(--color-restaurant-tagline);">
                         {{ $restaurant->description }}
                     </p>
                 @endif
@@ -930,10 +989,10 @@
     </div>
 @endif
     </div>
-    
+
 
 <!-- Search and Category Navigation -->
-<div class="max-w-7xl mx-auto px-4 py-8" style="background: var(--bg-primary);">
+<div class="max-w-7xl mx-auto px-4 py-8" style="background: var(--color-page-bg);">
     <!-- Search Bar -->
     <div class="max-w-md mx-auto mb-6">
         <div class="relative">
@@ -974,7 +1033,7 @@
                     <div class="category-header animate-fade-in-up">
                         <h2>{{ $category->name }}</h2>
                     </div>
-                    
+
                     <div class="responsive-grid">
                         @foreach($category->activeMenuItems as $item)
                             @php
@@ -1080,7 +1139,7 @@
                                                 <button type="button" class="quantity-btn"
                                                         @click="changeQuantity(1)"
                                                         :disabled="!canAddToCart()">+</button>
-                                                <input type="number" class="quantity-input text-white w-full"
+                                                <input type="number" class="quantity-input"
                                                        :value="quantity" min="0" max="999"
                                                        @change="setQuantity($event.target.value)"
                                                        id="qty-{{ $item->id }}">
@@ -1115,25 +1174,25 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h3>{{ __('messages.your_order') }}</h3>
-                    <p class="text-gray-400">{{ __('messages.review_items') }}</p>
+                    <p style="color: var(--color-text-muted);">{{ __('messages.review_items') }}</p>
                 </div>
-                
+
                 <div class="modal-body">
                     <div id="orderItems" class="mb-6"></div>
-                    
+
                     <div class="form-group">
                         <label class="form-label">{{ __('messages.additional_notes') }}</label>
                         <textarea id="orderNotes" class="form-input" rows="3"
                                   placeholder="{{ __('messages.notes_placeholder') }}"></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label">{{ __('messages.your_location') }}</label>
                         <textarea id="orderLocation" class="form-input" rows="2"
                                   placeholder="{{ __('messages.location_placeholder') }}" required></textarea>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeOrderModal()">
                         <i class="fas fa-times"></i>
@@ -1149,28 +1208,28 @@
     @endif
 
     <!-- Footer -->
-    <footer class="mt-24 glass border-t border-gray-700">
+    <footer class="mt-24" style="background: var(--color-footer-bg); border-top: 1px solid var(--color-border);">
         <div class="max-w-6xl mx-auto px-4 py-16">
             <div class="text-center">
                 <!-- Restaurant Info -->
-                <h3 class="text-2xl font-bold text-white mb-4">{{ $restaurant->name }}</h3>
-                <p class="text-gray-400 mb-8 text-lg">{{ __('messages.thank_you_visiting') }}</p>
+                <h3 class="text-2xl font-bold mb-4" style="color: var(--color-footer-heading);">{{ $restaurant->name }}</h3>
+                <p class="mb-8 text-lg" style="color: var(--color-footer-text);">{{ __('messages.thank_you_visiting') }}</p>
 
                 <!-- Company Info -->
-                <div class="border-t border-gray-600 pt-8 mt-8">
+                <div class="pt-8 mt-8" style="border-top: 1px solid var(--color-border);">
                     <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8">
                         <div class="flex items-center space-x-3">
                             <img src="{{ asset('images/logo.png') }}" alt="Hawi Tech" class="w-8 h-8 rounded">
-                            <span class="text-white font-semibold">Hawi Tech</span>
+                            <span class="font-semibold" style="color: var(--color-footer-heading);">Hawi Tech</span>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <i class="fab fa-whatsapp text-green-400 text-xl"></i>
-                            <a href="https://wa.me/970599647713" class="text-green-400 hover:text-green-300 transition-colors">
+                            <i class="fab fa-whatsapp text-xl" style="color: var(--color-text-price);"></i>
+                            <a href="https://wa.me/970599647713" class="transition-colors" style="color: var(--color-text-price);">
                                 +970 599 647 713
                             </a>
                         </div>
                     </div>
-                    <p class="text-gray-500 text-sm mt-6">
+                    <p class="text-sm mt-6" style="color: var(--color-footer-text);">
                      {{ __('messages.copyright', ['year' => date('Y'), 'restaurant' => 'Hawi Tech']) }}
                     </p>
                 </div>
@@ -1419,27 +1478,27 @@
 
             Object.values(cart).forEach(item => {
                 const optsText = item.options.length
-                    ? '<div class="text-gray-400 text-xs mt-1">'
+                    ? '<div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 0.25rem;">'
                         + item.options.map(o => `• ${o.group}: ${o.name}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${translations.currencySymbol}${Math.abs(o.delta).toFixed(2)})` : ''}`).join('<br>')
                         + '</div>'
                     : '';
                 html += `
                     <div class="order-item">
                         <div>
-                            <div class="font-semibold text-white">${item.name}</div>
-                            <div class="text-gray-400 text-sm">${translations.currencySymbol}${item.unitPrice.toFixed(2)} x ${item.quantity}</div>
+                            <div style="font-weight:600; color: var(--color-text-primary);">${item.name}</div>
+                            <div style="color: var(--color-text-muted); font-size:0.875rem;">${translations.currencySymbol}${item.unitPrice.toFixed(2)} x ${item.quantity}</div>
                             ${optsText}
                         </div>
-                        <div class="font-bold text-green-400">${translations.currencySymbol}${item.total.toFixed(2)}</div>
+                        <div style="font-weight:700; color: var(--color-text-price);">${translations.currencySymbol}${item.total.toFixed(2)}</div>
                     </div>
                 `;
                 grandTotal += item.total;
             });
 
             html += `
-                <div class="order-item bg-gray-700 border-2 border-green-500">
-                    <div class="font-bold text-white text-lg">${translations.totalLabel}</div>
-                    <div class="font-bold text-green-400 text-xl">${translations.currencySymbol}${grandTotal.toFixed(2)}</div>
+                <div class="order-item" style="border: 2px solid var(--color-card-border-hover); background: var(--color-page-bg-2);">
+                    <div style="font-weight:700; color: var(--color-text-primary); font-size:1.125rem;">${translations.totalLabel}</div>
+                    <div style="font-weight:700; color: var(--color-text-price); font-size:1.25rem;">${translations.currencySymbol}${grandTotal.toFixed(2)}</div>
                 </div>
             `;
 
@@ -1545,7 +1604,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const queryLang = urlParams.get('lang');
-            
+
             const cookies = document.cookie.split(';');
             let appLocale = 'en';
 

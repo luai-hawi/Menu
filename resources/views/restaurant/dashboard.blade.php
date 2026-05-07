@@ -498,64 +498,871 @@
             </section>
 
             {{-- ==================== THEME TAB ==================== --}}
-            <section x-show="tab === 'theme'" x-cloak role="tabpanel" class="dash-tab-panel">
+            <section x-show="tab === 'theme'" x-cloak role="tabpanel" class="dash-tab-panel"
+                x-data="themeEditor(@js($restaurant->theme_colors ?: []))">
+
+                {{-- ── PRESET THEMES ── --}}
                 <div class="dash-card dash-card-wide">
                     <header class="dash-card-header">
-                        <div class="dash-card-icon dash-icon-purple"><i class="fas fa-palette"></i></div>
-                        <h3>{{ __('messages.theme_colors') }}</h3>
+                        <div class="dash-card-icon dash-icon-purple"><i class="fas fa-magic"></i></div>
+                        <h3>{{ __('messages.theme.preset_themes_title') }}</h3>
                     </header>
-                    <p class="dash-help" style="margin-bottom: 1rem">{{ __('messages.choose_colors') }}</p>
+                    <p class="dash-help" style="margin-bottom:1.25rem;">
+                        {{ __('messages.theme.preset_themes_desc') }}</p>
 
-                    <form action="{{ route('restaurant.update.settings') }}" method="POST" data-ajax>
-                        @csrf
+                    <div class="theme-presets-grid">
+                        @php
+                            $presets = [
+                                'midnight_galaxy' => [
+                                    'label_en' => 'Midnight Galaxy',
+                                    'label_ar' => 'مجرة منتصف الليل',
+                                    'type' => 'dark',
+                                    'preview' => ['#0a0e27', '#6366f1', '#22d3ee'],
+                                    'colors' => [
+                                        'page_bg' => '#0a0e27',
+                                        'page_bg_2' => '#141b3c',
+                                        'page_bg_3' => '#1e2749',
+                                        'header_bg_start' => '#0a0e27',
+                                        'header_bg_end' => '#1e2749',
+                                        'restaurant_name' => '#ffffff',
+                                        'restaurant_tagline' => '#e2e8f0',
+                                        'text_primary' => '#ffffff',
+                                        'text_secondary' => '#e2e8f0',
+                                        'text_muted' => '#94a3b8',
+                                        'text_price' => '#22d3ee',
+                                        'text_option_price' => '#86efac',
+                                        'card_bg' => '#1a2254',
+                                        'card_border' => '#334155',
+                                        'card_border_hover' => '#6366f1',
+                                        'card_accent_bar' => '#6366f1',
+                                        'card_accent_bar_end' => '#8b5cf6',
+                                        'btn_primary' => '#6366f1',
+                                        'btn_primary_end' => '#8b5cf6',
+                                        'btn_qty' => '#6366f1',
+                                        'btn_qty_end' => '#8b5cf6',
+                                        'btn_order' => '#22c55e',
+                                        'btn_order_end' => '#16a34a',
+                                        'pill_bg' => '#1a2254',
+                                        'pill_border' => '#334155',
+                                        'pill_text' => '#94a3b8',
+                                        'pill_active' => '#6366f1',
+                                        'pill_active_end' => '#8b5cf6',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#0f1631',
+                                        'option_selected_bg' => '#2e3a8c',
+                                        'option_input_accent' => '#6366f1',
+                                        'input_bg' => '#1e2749',
+                                        'input_border' => '#334155',
+                                        'input_focus' => '#6366f1',
+                                        'input_text' => '#ffffff',
+                                        'footer_bg' => '#070b1e',
+                                        'footer_text' => '#94a3b8',
+                                        'footer_heading' => '#ffffff',
+                                        'border' => '#334155',
+                                        'border_secondary' => '#475569',
+                                    ],
+                                ],
+                                'emerald_night' => [
+                                    'label_en' => 'Emerald Night',
+                                    'label_ar' => 'ليلة الزمرد',
+                                    'type' => 'dark',
+                                    'preview' => ['#071a10', '#10b981', '#34d399'],
+                                    'colors' => [
+                                        'page_bg' => '#071a10',
+                                        'page_bg_2' => '#0d2b1a',
+                                        'page_bg_3' => '#143d27',
+                                        'header_bg_start' => '#071a10',
+                                        'header_bg_end' => '#143d27',
+                                        'restaurant_name' => '#ffffff',
+                                        'restaurant_tagline' => '#d1fae5',
+                                        'text_primary' => '#ecfdf5',
+                                        'text_secondary' => '#d1fae5',
+                                        'text_muted' => '#6ee7b7',
+                                        'text_price' => '#34d399',
+                                        'text_option_price' => '#6ee7b7',
+                                        'card_bg' => '#0d2b1a',
+                                        'card_border' => '#1a5c35',
+                                        'card_border_hover' => '#10b981',
+                                        'card_accent_bar' => '#10b981',
+                                        'card_accent_bar_end' => '#059669',
+                                        'btn_primary' => '#10b981',
+                                        'btn_primary_end' => '#059669',
+                                        'btn_qty' => '#10b981',
+                                        'btn_qty_end' => '#059669',
+                                        'btn_order' => '#25d366',
+                                        'btn_order_end' => '#128c7e',
+                                        'pill_bg' => '#0d2b1a',
+                                        'pill_border' => '#1a5c35',
+                                        'pill_text' => '#6ee7b7',
+                                        'pill_active' => '#10b981',
+                                        'pill_active_end' => '#059669',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#071a10',
+                                        'option_selected_bg' => '#1a5c35',
+                                        'option_input_accent' => '#10b981',
+                                        'input_bg' => '#143d27',
+                                        'input_border' => '#1a5c35',
+                                        'input_focus' => '#10b981',
+                                        'input_text' => '#ecfdf5',
+                                        'footer_bg' => '#040d08',
+                                        'footer_text' => '#6ee7b7',
+                                        'footer_heading' => '#ecfdf5',
+                                        'border' => '#1a5c35',
+                                        'border_secondary' => '#2d7a50',
+                                    ],
+                                ],
+                                'crimson_dark' => [
+                                    'label_en' => 'Crimson Dark',
+                                    'label_ar' => 'القرمزي الداكن',
+                                    'type' => 'dark',
+                                    'preview' => ['#0f0a0a', '#ef4444', '#fca5a5'],
+                                    'colors' => [
+                                        'page_bg' => '#0f0a0a',
+                                        'page_bg_2' => '#1a1010',
+                                        'page_bg_3' => '#241818',
+                                        'header_bg_start' => '#0f0a0a',
+                                        'header_bg_end' => '#241818',
+                                        'restaurant_name' => '#ffffff',
+                                        'restaurant_tagline' => '#fee2e2',
+                                        'text_primary' => '#fff1f1',
+                                        'text_secondary' => '#fee2e2',
+                                        'text_muted' => '#fca5a5',
+                                        'text_price' => '#f87171',
+                                        'text_option_price' => '#fca5a5',
+                                        'card_bg' => '#1a1010',
+                                        'card_border' => '#4b1c1c',
+                                        'card_border_hover' => '#ef4444',
+                                        'card_accent_bar' => '#ef4444',
+                                        'card_accent_bar_end' => '#b91c1c',
+                                        'btn_primary' => '#ef4444',
+                                        'btn_primary_end' => '#b91c1c',
+                                        'btn_qty' => '#ef4444',
+                                        'btn_qty_end' => '#b91c1c',
+                                        'btn_order' => '#ef4444',
+                                        'btn_order_end' => '#b91c1c',
+                                        'pill_bg' => '#1a1010',
+                                        'pill_border' => '#4b1c1c',
+                                        'pill_text' => '#fca5a5',
+                                        'pill_active' => '#ef4444',
+                                        'pill_active_end' => '#b91c1c',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#0f0a0a',
+                                        'option_selected_bg' => '#4b1c1c',
+                                        'option_input_accent' => '#ef4444',
+                                        'input_bg' => '#241818',
+                                        'input_border' => '#4b1c1c',
+                                        'input_focus' => '#ef4444',
+                                        'input_text' => '#fff1f1',
+                                        'footer_bg' => '#080505',
+                                        'footer_text' => '#fca5a5',
+                                        'footer_heading' => '#ffffff',
+                                        'border' => '#4b1c1c',
+                                        'border_secondary' => '#7f1d1d',
+                                    ],
+                                ],
+                                'golden_dusk' => [
+                                    'label_en' => 'Golden Dusk',
+                                    'label_ar' => 'الغسق الذهبي',
+                                    'type' => 'dark',
+                                    'preview' => ['#12100a', '#f59e0b', '#fcd34d'],
+                                    'colors' => [
+                                        'page_bg' => '#12100a',
+                                        'page_bg_2' => '#1e1a0f',
+                                        'page_bg_3' => '#2b2516',
+                                        'header_bg_start' => '#12100a',
+                                        'header_bg_end' => '#2b2516',
+                                        'restaurant_name' => '#fef3c7',
+                                        'restaurant_tagline' => '#fde68a',
+                                        'text_primary' => '#fef3c7',
+                                        'text_secondary' => '#fde68a',
+                                        'text_muted' => '#d97706',
+                                        'text_price' => '#f59e0b',
+                                        'text_option_price' => '#fcd34d',
+                                        'card_bg' => '#1e1a0f',
+                                        'card_border' => '#44350e',
+                                        'card_border_hover' => '#f59e0b',
+                                        'card_accent_bar' => '#f59e0b',
+                                        'card_accent_bar_end' => '#d97706',
+                                        'btn_primary' => '#f59e0b',
+                                        'btn_primary_end' => '#d97706',
+                                        'btn_qty' => '#f59e0b',
+                                        'btn_qty_end' => '#d97706',
+                                        'btn_order' => '#f59e0b',
+                                        'btn_order_end' => '#d97706',
+                                        'pill_bg' => '#1e1a0f',
+                                        'pill_border' => '#44350e',
+                                        'pill_text' => '#d97706',
+                                        'pill_active' => '#f59e0b',
+                                        'pill_active_end' => '#d97706',
+                                        'pill_active_text' => '#12100a',
+                                        'option_group_bg' => '#12100a',
+                                        'option_selected_bg' => '#44350e',
+                                        'option_input_accent' => '#f59e0b',
+                                        'input_bg' => '#2b2516',
+                                        'input_border' => '#44350e',
+                                        'input_focus' => '#f59e0b',
+                                        'input_text' => '#fef3c7',
+                                        'footer_bg' => '#0a0906',
+                                        'footer_text' => '#d97706',
+                                        'footer_heading' => '#fef3c7',
+                                        'border' => '#44350e',
+                                        'border_secondary' => '#78521f',
+                                    ],
+                                ],
+                                'ocean_depths' => [
+                                    'label_en' => 'Ocean Depths',
+                                    'label_ar' => 'أعماق المحيط',
+                                    'type' => 'dark',
+                                    'preview' => ['#061929', '#06b6d4', '#67e8f9'],
+                                    'colors' => [
+                                        'page_bg' => '#061929',
+                                        'page_bg_2' => '#0a253d',
+                                        'page_bg_3' => '#0f3050',
+                                        'header_bg_start' => '#061929',
+                                        'header_bg_end' => '#0f3050',
+                                        'restaurant_name' => '#ffffff',
+                                        'restaurant_tagline' => '#cffafe',
+                                        'text_primary' => '#f0f9ff',
+                                        'text_secondary' => '#bae6fd',
+                                        'text_muted' => '#38bdf8',
+                                        'text_price' => '#06b6d4',
+                                        'text_option_price' => '#67e8f9',
+                                        'card_bg' => '#0a253d',
+                                        'card_border' => '#164e72',
+                                        'card_border_hover' => '#06b6d4',
+                                        'card_accent_bar' => '#06b6d4',
+                                        'card_accent_bar_end' => '#0284c7',
+                                        'btn_primary' => '#06b6d4',
+                                        'btn_primary_end' => '#0284c7',
+                                        'btn_qty' => '#06b6d4',
+                                        'btn_qty_end' => '#0284c7',
+                                        'btn_order' => '#06b6d4',
+                                        'btn_order_end' => '#0284c7',
+                                        'pill_bg' => '#0a253d',
+                                        'pill_border' => '#164e72',
+                                        'pill_text' => '#38bdf8',
+                                        'pill_active' => '#06b6d4',
+                                        'pill_active_end' => '#0284c7',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#061929',
+                                        'option_selected_bg' => '#164e72',
+                                        'option_input_accent' => '#06b6d4',
+                                        'input_bg' => '#0f3050',
+                                        'input_border' => '#164e72',
+                                        'input_focus' => '#06b6d4',
+                                        'input_text' => '#f0f9ff',
+                                        'footer_bg' => '#030d17',
+                                        'footer_text' => '#38bdf8',
+                                        'footer_heading' => '#f0f9ff',
+                                        'border' => '#164e72',
+                                        'border_secondary' => '#0369a1',
+                                    ],
+                                ],
+                                'rose_garden' => [
+                                    'label_en' => 'Rose Garden',
+                                    'label_ar' => 'حديقة الورود',
+                                    'type' => 'light',
+                                    'preview' => ['#fff5f7', '#e11d48', '#be185d'],
+                                    'colors' => [
+                                        'page_bg' => '#fff5f7',
+                                        'page_bg_2' => '#fce7ef',
+                                        'page_bg_3' => '#fbd3e0',
+                                        'header_bg_start' => '#fff5f7',
+                                        'header_bg_end' => '#fce7ef',
+                                        'restaurant_name' => '#881337',
+                                        'restaurant_tagline' => '#be185d',
+                                        'text_primary' => '#1f0a12',
+                                        'text_secondary' => '#4c0519',
+                                        'text_muted' => '#9f1239',
+                                        'text_price' => '#e11d48',
+                                        'text_option_price' => '#be185d',
+                                        'card_bg' => '#ffffff',
+                                        'card_border' => '#fda4af',
+                                        'card_border_hover' => '#e11d48',
+                                        'card_accent_bar' => '#e11d48',
+                                        'card_accent_bar_end' => '#be185d',
+                                        'btn_primary' => '#e11d48',
+                                        'btn_primary_end' => '#be185d',
+                                        'btn_qty' => '#e11d48',
+                                        'btn_qty_end' => '#be185d',
+                                        'btn_order' => '#e11d48',
+                                        'btn_order_end' => '#be185d',
+                                        'pill_bg' => '#fff5f7',
+                                        'pill_border' => '#fda4af',
+                                        'pill_text' => '#9f1239',
+                                        'pill_active' => '#e11d48',
+                                        'pill_active_end' => '#be185d',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#fff5f7',
+                                        'option_selected_bg' => '#fce7ef',
+                                        'option_input_accent' => '#e11d48',
+                                        'input_bg' => '#ffffff',
+                                        'input_border' => '#fda4af',
+                                        'input_focus' => '#e11d48',
+                                        'input_text' => '#1f0a12',
+                                        'footer_bg' => '#fff5f7',
+                                        'footer_text' => '#9f1239',
+                                        'footer_heading' => '#881337',
+                                        'border' => '#fda4af',
+                                        'border_secondary' => '#f9a8b4',
+                                    ],
+                                ],
+                                'fresh_mint' => [
+                                    'label_en' => 'Fresh Mint',
+                                    'label_ar' => 'النعناع الطازج',
+                                    'type' => 'light',
+                                    'preview' => ['#f0fdf4', '#16a34a', '#22c55e'],
+                                    'colors' => [
+                                        'page_bg' => '#f0fdf4',
+                                        'page_bg_2' => '#dcfce7',
+                                        'page_bg_3' => '#bbf7d0',
+                                        'header_bg_start' => '#f0fdf4',
+                                        'header_bg_end' => '#dcfce7',
+                                        'restaurant_name' => '#14532d',
+                                        'restaurant_tagline' => '#166534',
+                                        'text_primary' => '#052e16',
+                                        'text_secondary' => '#14532d',
+                                        'text_muted' => '#15803d',
+                                        'text_price' => '#16a34a',
+                                        'text_option_price' => '#22c55e',
+                                        'card_bg' => '#ffffff',
+                                        'card_border' => '#86efac',
+                                        'card_border_hover' => '#16a34a',
+                                        'card_accent_bar' => '#16a34a',
+                                        'card_accent_bar_end' => '#15803d',
+                                        'btn_primary' => '#16a34a',
+                                        'btn_primary_end' => '#15803d',
+                                        'btn_qty' => '#16a34a',
+                                        'btn_qty_end' => '#15803d',
+                                        'btn_order' => '#16a34a',
+                                        'btn_order_end' => '#15803d',
+                                        'pill_bg' => '#f0fdf4',
+                                        'pill_border' => '#86efac',
+                                        'pill_text' => '#166534',
+                                        'pill_active' => '#16a34a',
+                                        'pill_active_end' => '#15803d',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#f0fdf4',
+                                        'option_selected_bg' => '#dcfce7',
+                                        'option_input_accent' => '#16a34a',
+                                        'input_bg' => '#ffffff',
+                                        'input_border' => '#86efac',
+                                        'input_focus' => '#16a34a',
+                                        'input_text' => '#052e16',
+                                        'footer_bg' => '#f0fdf4',
+                                        'footer_text' => '#166534',
+                                        'footer_heading' => '#14532d',
+                                        'border' => '#86efac',
+                                        'border_secondary' => '#4ade80',
+                                    ],
+                                ],
+                                'lavender_cloud' => [
+                                    'label_en' => 'Lavender Cloud',
+                                    'label_ar' => 'سحابة اللافندر',
+                                    'type' => 'light',
+                                    'preview' => ['#faf5ff', '#7c3aed', '#a78bfa'],
+                                    'colors' => [
+                                        'page_bg' => '#faf5ff',
+                                        'page_bg_2' => '#f3e8ff',
+                                        'page_bg_3' => '#e9d5ff',
+                                        'header_bg_start' => '#faf5ff',
+                                        'header_bg_end' => '#f3e8ff',
+                                        'restaurant_name' => '#4c1d95',
+                                        'restaurant_tagline' => '#5b21b6',
+                                        'text_primary' => '#1e0540',
+                                        'text_secondary' => '#4c1d95',
+                                        'text_muted' => '#7c3aed',
+                                        'text_price' => '#7c3aed',
+                                        'text_option_price' => '#a78bfa',
+                                        'card_bg' => '#ffffff',
+                                        'card_border' => '#d8b4fe',
+                                        'card_border_hover' => '#7c3aed',
+                                        'card_accent_bar' => '#7c3aed',
+                                        'card_accent_bar_end' => '#6d28d9',
+                                        'btn_primary' => '#7c3aed',
+                                        'btn_primary_end' => '#6d28d9',
+                                        'btn_qty' => '#7c3aed',
+                                        'btn_qty_end' => '#6d28d9',
+                                        'btn_order' => '#7c3aed',
+                                        'btn_order_end' => '#6d28d9',
+                                        'pill_bg' => '#faf5ff',
+                                        'pill_border' => '#d8b4fe',
+                                        'pill_text' => '#5b21b6',
+                                        'pill_active' => '#7c3aed',
+                                        'pill_active_end' => '#6d28d9',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#faf5ff',
+                                        'option_selected_bg' => '#f3e8ff',
+                                        'option_input_accent' => '#7c3aed',
+                                        'input_bg' => '#ffffff',
+                                        'input_border' => '#d8b4fe',
+                                        'input_focus' => '#7c3aed',
+                                        'input_text' => '#1e0540',
+                                        'footer_bg' => '#faf5ff',
+                                        'footer_text' => '#5b21b6',
+                                        'footer_heading' => '#4c1d95',
+                                        'border' => '#d8b4fe',
+                                        'border_secondary' => '#c4b5fd',
+                                    ],
+                                ],
+                                'sunset_coral' => [
+                                    'label_en' => 'Sunset Coral',
+                                    'label_ar' => 'مرجان الغروب',
+                                    'type' => 'light',
+                                    'preview' => ['#fff8f5', '#ea580c', '#fb923c'],
+                                    'colors' => [
+                                        'page_bg' => '#fff8f5',
+                                        'page_bg_2' => '#fff1eb',
+                                        'page_bg_3' => '#ffe4d6',
+                                        'header_bg_start' => '#fff8f5',
+                                        'header_bg_end' => '#fff1eb',
+                                        'restaurant_name' => '#7c2d12',
+                                        'restaurant_tagline' => '#9a3412',
+                                        'text_primary' => '#431407',
+                                        'text_secondary' => '#7c2d12',
+                                        'text_muted' => '#ea580c',
+                                        'text_price' => '#ea580c',
+                                        'text_option_price' => '#fb923c',
+                                        'card_bg' => '#ffffff',
+                                        'card_border' => '#fed7aa',
+                                        'card_border_hover' => '#ea580c',
+                                        'card_accent_bar' => '#ea580c',
+                                        'card_accent_bar_end' => '#c2410c',
+                                        'btn_primary' => '#ea580c',
+                                        'btn_primary_end' => '#c2410c',
+                                        'btn_qty' => '#ea580c',
+                                        'btn_qty_end' => '#c2410c',
+                                        'btn_order' => '#ea580c',
+                                        'btn_order_end' => '#c2410c',
+                                        'pill_bg' => '#fff8f5',
+                                        'pill_border' => '#fed7aa',
+                                        'pill_text' => '#9a3412',
+                                        'pill_active' => '#ea580c',
+                                        'pill_active_end' => '#c2410c',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#fff8f5',
+                                        'option_selected_bg' => '#fff1eb',
+                                        'option_input_accent' => '#ea580c',
+                                        'input_bg' => '#ffffff',
+                                        'input_border' => '#fed7aa',
+                                        'input_focus' => '#ea580c',
+                                        'input_text' => '#431407',
+                                        'footer_bg' => '#fff8f5',
+                                        'footer_text' => '#9a3412',
+                                        'footer_heading' => '#7c2d12',
+                                        'border' => '#fed7aa',
+                                        'border_secondary' => '#fdba74',
+                                    ],
+                                ],
+                                'arctic_frost' => [
+                                    'label_en' => 'Arctic Frost',
+                                    'label_ar' => 'صقيع القطب',
+                                    'type' => 'light',
+                                    'preview' => ['#f0f9ff', '#0284c7', '#38bdf8'],
+                                    'colors' => [
+                                        'page_bg' => '#f0f9ff',
+                                        'page_bg_2' => '#e0f2fe',
+                                        'page_bg_3' => '#bae6fd',
+                                        'header_bg_start' => '#f0f9ff',
+                                        'header_bg_end' => '#e0f2fe',
+                                        'restaurant_name' => '#0c4a6e',
+                                        'restaurant_tagline' => '#075985',
+                                        'text_primary' => '#082f49',
+                                        'text_secondary' => '#0c4a6e',
+                                        'text_muted' => '#0284c7',
+                                        'text_price' => '#0284c7',
+                                        'text_option_price' => '#38bdf8',
+                                        'card_bg' => '#ffffff',
+                                        'card_border' => '#7dd3fc',
+                                        'card_border_hover' => '#0284c7',
+                                        'card_accent_bar' => '#0284c7',
+                                        'card_accent_bar_end' => '#0369a1',
+                                        'btn_primary' => '#0284c7',
+                                        'btn_primary_end' => '#0369a1',
+                                        'btn_qty' => '#0284c7',
+                                        'btn_qty_end' => '#0369a1',
+                                        'btn_order' => '#0284c7',
+                                        'btn_order_end' => '#0369a1',
+                                        'pill_bg' => '#f0f9ff',
+                                        'pill_border' => '#7dd3fc',
+                                        'pill_text' => '#075985',
+                                        'pill_active' => '#0284c7',
+                                        'pill_active_end' => '#0369a1',
+                                        'pill_active_text' => '#ffffff',
+                                        'option_group_bg' => '#f0f9ff',
+                                        'option_selected_bg' => '#e0f2fe',
+                                        'option_input_accent' => '#0284c7',
+                                        'input_bg' => '#ffffff',
+                                        'input_border' => '#7dd3fc',
+                                        'input_focus' => '#0284c7',
+                                        'input_text' => '#082f49',
+                                        'footer_bg' => '#f0f9ff',
+                                        'footer_text' => '#075985',
+                                        'footer_heading' => '#0c4a6e',
+                                        'border' => '#7dd3fc',
+                                        'border_secondary' => '#38bdf8',
+                                    ],
+                                ],
+                            ];
+                        @endphp
+
+                        @foreach ($presets as $presetKey => $preset)
+                            <button type="button" class="theme-preset-btn"
+                                :class="{ 'theme-preset-active': activePreset === '{{ $presetKey }}' }"
+                                @click="applyPreset(@js($preset['colors']), '{{ $presetKey }}')"
+                                title="{{ app()->getLocale() === 'ar' ? $preset['label_ar'] : $preset['label_en'] }}">
+                                <div class="theme-preset-swatches">
+                                    @foreach ($preset['preview'] as $swatch)
+                                        <span class="theme-swatch" style="background: {{ $swatch }};"></span>
+                                    @endforeach
+                                </div>
+                                <div class="theme-preset-info">
+                                    <span
+                                        class="theme-preset-name">{{ app()->getLocale() === 'ar' ? $preset['label_ar'] : $preset['label_en'] }}</span>
+                                    <span class="theme-preset-type theme-preset-type--{{ $preset['type'] }}">
+                                        {{ $preset['type'] === 'dark' ? __('messages.theme.dark') : __('messages.theme.light') }}
+                                    </span>
+                                </div>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- ── COLOR CONTROLS FORM ── --}}
+                <form action="{{ route('restaurant.update.settings') }}" method="POST" data-ajax
+                    id="themeColorsForm">
+                    @csrf
+
+                    @php
+                        $tc = $restaurant->theme_colors ?: [];
+                        $cv = fn($k, $d) => $tc[$k] ?? $d;
+                    @endphp
+
+                    {{-- GROUP 1: Page Background --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-layer-group"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_page_bg') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_page_bg_desc') }}</p>
+                            </div>
+                        </header>
                         <div class="dash-colors-grid">
-                            @foreach ([['primary_color', 'primary', '#667eea', __('messages.primary_color')], ['secondary_color', 'secondary', '#764ba2', __('messages.secondary_color')], ['accent_color', 'accent', '#4facfe', __('messages.accent_color')], ['text_color', 'text', '#ffffff', __('messages.text_color')], ['background_color', 'background', '#0a0e27', __('messages.background_color')], ['card_color', 'card', '#252d56', __('messages.card_color')], ['secondary_bg', 'secondary_bg', '#141b3c', __('messages.secondary_background')], ['tertiary_bg', 'tertiary_bg', '#1e2749', __('messages.tertiary_background')], ['secondary_text', 'secondary_text', '#e2e8f0', __('messages.secondary_text')], ['muted_text', 'muted_text', '#94a3b8', __('messages.muted_text')], ['input_bg', 'input_bg', '#1e2749', __('messages.input_background')], ['input_border', 'input_border', '#334155', __('messages.input_border')]] as [$field, $key, $default, $label])
-                                <label class="dash-color-field">
-                                    <span class="dash-label">{{ $label }}</span>
-                                    <input type="color" name="{{ $field }}"
-                                        value="{{ $restaurant->theme_colors[$key] ?? $default }}">
-                                </label>
-                            @endforeach
+                            <x-theme-color-field name="page_bg" :value="$cv('page_bg', '#0a0e27')" :label="__('messages.theme.page_bg')"
+                                :hint="__('messages.theme.page_bg_hint')" />
+                            <x-theme-color-field name="page_bg_2" :value="$cv('page_bg_2', '#141b3c')" :label="__('messages.theme.page_bg_2')"
+                                :hint="__('messages.theme.page_bg_2_hint')" />
+                            <x-theme-color-field name="page_bg_3" :value="$cv('page_bg_3', '#1e2749')" :label="__('messages.theme.page_bg_3')"
+                                :hint="__('messages.theme.page_bg_3_hint')" />
                         </div>
+                    </div>
 
+                    {{-- GROUP 2: Header / Hero --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-purple"><i class="fas fa-store"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_header') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_header_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="header_bg_start" :value="$cv('header_bg_start', '#0a0e27')" :label="__('messages.theme.header_bg_start')"
+                                :hint="__('messages.theme.header_bg_start_hint')" />
+                            <x-theme-color-field name="header_bg_end" :value="$cv('header_bg_end', '#1e2749')" :label="__('messages.theme.header_bg_end')"
+                                :hint="__('messages.theme.header_bg_end_hint')" />
+                            <x-theme-color-field name="restaurant_name" :value="$cv('restaurant_name', '#ffffff')" :label="__('messages.theme.restaurant_name')"
+                                :hint="__('messages.theme.restaurant_name_hint')" />
+                            <x-theme-color-field name="restaurant_tagline" :value="$cv('restaurant_tagline', '#e2e8f0')" :label="__('messages.theme.restaurant_tagline')"
+                                :hint="__('messages.theme.restaurant_tagline_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 3: Body Text --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-font"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_text') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_text_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="text_primary" :value="$cv('text_primary', '#ffffff')" :label="__('messages.theme.text_primary')"
+                                :hint="__('messages.theme.text_primary_hint')" />
+                            <x-theme-color-field name="text_secondary" :value="$cv('text_secondary', '#e2e8f0')" :label="__('messages.theme.text_secondary')"
+                                :hint="__('messages.theme.text_secondary_hint')" />
+                            <x-theme-color-field name="text_muted" :value="$cv('text_muted', '#94a3b8')" :label="__('messages.theme.text_muted')"
+                                :hint="__('messages.theme.text_muted_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 4: Prices --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-green"><i class="fas fa-tag"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_prices') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_prices_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="text_price" :value="$cv('text_price', '#22d3ee')" :label="__('messages.theme.text_price')"
+                                :hint="__('messages.theme.text_price_hint')" />
+                            <x-theme-color-field name="text_option_price" :value="$cv('text_option_price', '#86efac')" :label="__('messages.theme.text_option_price')"
+                                :hint="__('messages.theme.text_option_price_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 5: Product Cards --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-th-large"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_cards') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_cards_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="card_bg" :value="$cv('card_bg', '#1a2254')" :label="__('messages.theme.card_bg')"
+                                :hint="__('messages.theme.card_bg_hint')" />
+                            <x-theme-color-field name="card_border" :value="$cv('card_border', '#334155')" :label="__('messages.theme.card_border')"
+                                :hint="__('messages.theme.card_border_hint')" />
+                            <x-theme-color-field name="card_border_hover" :value="$cv('card_border_hover', '#6366f1')" :label="__('messages.theme.card_border_hover')"
+                                :hint="__('messages.theme.card_border_hover_hint')" />
+                            <x-theme-color-field name="card_accent_bar" :value="$cv('card_accent_bar', '#6366f1')" :label="__('messages.theme.card_accent_bar')"
+                                :hint="__('messages.theme.card_accent_bar_hint')" />
+                            <x-theme-color-field name="card_accent_bar_end" :value="$cv('card_accent_bar_end', '#8b5cf6')" :label="__('messages.theme.card_accent_bar_end')"
+                                :hint="__('messages.theme.card_accent_bar_end_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 6: Buttons --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-purple"><i class="fas fa-hand-pointer"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_buttons') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_buttons_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="btn_primary" :value="$cv('btn_primary', '#6366f1')" :label="__('messages.theme.btn_primary')"
+                                :hint="__('messages.theme.btn_primary_hint')" />
+                            <x-theme-color-field name="btn_primary_end" :value="$cv('btn_primary_end', '#8b5cf6')" :label="__('messages.theme.btn_primary_end')"
+                                :hint="__('messages.theme.btn_primary_end_hint')" />
+                            <x-theme-color-field name="btn_qty" :value="$cv('btn_qty', '#6366f1')" :label="__('messages.theme.btn_qty')"
+                                :hint="__('messages.theme.btn_qty_hint')" />
+                            <x-theme-color-field name="btn_qty_end" :value="$cv('btn_qty_end', '#8b5cf6')" :label="__('messages.theme.btn_qty_end')"
+                                :hint="__('messages.theme.btn_qty_end_hint')" />
+                            <x-theme-color-field name="btn_order" :value="$cv('btn_order', '#22c55e')" :label="__('messages.theme.btn_order')"
+                                :hint="__('messages.theme.btn_order_hint')" />
+                            <x-theme-color-field name="btn_order_end" :value="$cv('btn_order_end', '#16a34a')" :label="__('messages.theme.btn_order_end')"
+                                :hint="__('messages.theme.btn_order_end_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 7: Category Pills --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-pills"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_pills') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_pills_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="pill_bg" :value="$cv('pill_bg', '#1a2254')" :label="__('messages.theme.pill_bg')"
+                                :hint="__('messages.theme.pill_bg_hint')" />
+                            <x-theme-color-field name="pill_border" :value="$cv('pill_border', '#334155')" :label="__('messages.theme.pill_border')"
+                                :hint="__('messages.theme.pill_border_hint')" />
+                            <x-theme-color-field name="pill_text" :value="$cv('pill_text', '#94a3b8')" :label="__('messages.theme.pill_text')"
+                                :hint="__('messages.theme.pill_text_hint')" />
+                            <x-theme-color-field name="pill_active" :value="$cv('pill_active', '#6366f1')" :label="__('messages.theme.pill_active')"
+                                :hint="__('messages.theme.pill_active_hint')" />
+                            <x-theme-color-field name="pill_active_end" :value="$cv('pill_active_end', '#8b5cf6')" :label="__('messages.theme.pill_active_end')"
+                                :hint="__('messages.theme.pill_active_end_hint')" />
+                            <x-theme-color-field name="pill_active_text" :value="$cv('pill_active_text', '#ffffff')" :label="__('messages.theme.pill_active_text')"
+                                :hint="__('messages.theme.pill_active_text_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 8: Product Options --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-green"><i class="fas fa-list-ul"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_options') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_options_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="option_group_bg" :value="$cv('option_group_bg', '#0f1631')" :label="__('messages.theme.option_group_bg')"
+                                :hint="__('messages.theme.option_group_bg_hint')" />
+                            <x-theme-color-field name="option_selected_bg" :value="$cv('option_selected_bg', '#2e3a8c')" :label="__('messages.theme.option_selected_bg')"
+                                :hint="__('messages.theme.option_selected_bg_hint')" />
+                            <x-theme-color-field name="option_input_accent" :value="$cv('option_input_accent', '#6366f1')" :label="__('messages.theme.option_input_accent')"
+                                :hint="__('messages.theme.option_input_accent_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 9: Search & Inputs --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-search"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_inputs') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_inputs_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="input_bg" :value="$cv('input_bg', '#1e2749')" :label="__('messages.theme.input_bg')"
+                                :hint="__('messages.theme.input_bg_hint')" />
+                            <x-theme-color-field name="input_border" :value="$cv('input_border', '#334155')" :label="__('messages.theme.input_border')"
+                                :hint="__('messages.theme.input_border_hint')" />
+                            <x-theme-color-field name="input_focus" :value="$cv('input_focus', '#6366f1')" :label="__('messages.theme.input_focus')"
+                                :hint="__('messages.theme.input_focus_hint')" />
+                            <x-theme-color-field name="input_text" :value="$cv('input_text', '#ffffff')" :label="__('messages.theme.input_text')"
+                                :hint="__('messages.theme.input_text_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 10: Footer --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-purple"><i class="fas fa-shoe-prints"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_footer') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_footer_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="footer_bg" :value="$cv('footer_bg', '#070b1e')" :label="__('messages.theme.footer_bg')"
+                                :hint="__('messages.theme.footer_bg_hint')" />
+                            <x-theme-color-field name="footer_text" :value="$cv('footer_text', '#94a3b8')" :label="__('messages.theme.footer_text')"
+                                :hint="__('messages.theme.footer_text_hint')" />
+                            <x-theme-color-field name="footer_heading" :value="$cv('footer_heading', '#ffffff')" :label="__('messages.theme.footer_heading')"
+                                :hint="__('messages.theme.footer_heading_hint')" />
+                        </div>
+                    </div>
+
+                    {{-- GROUP 11: Borders & Dividers --}}
+                    <div class="dash-card dash-card-wide">
+                        <header class="dash-card-header">
+                            <div class="dash-card-icon dash-icon-blue"><i class="fas fa-border-style"></i></div>
+                            <div>
+                                <h3>{{ __('messages.theme.group_borders') }}</h3>
+                                <p class="dash-help">{{ __('messages.theme.group_borders_desc') }}</p>
+                            </div>
+                        </header>
+                        <div class="dash-colors-grid">
+                            <x-theme-color-field name="border" :value="$cv('border', '#334155')" :label="__('messages.theme.border')"
+                                :hint="__('messages.theme.border_hint')" />
+                            <x-theme-color-field name="border_secondary" :value="$cv('border_secondary', '#475569')" :label="__('messages.theme.border_secondary')"
+                                :hint="__('messages.theme.border_secondary_hint')" />
+                        </div>
+                    </div>
+
+                    <div class="dash-card dash-card-wide">
                         <div class="dash-button-row">
                             <button type="submit" class="dash-btn dash-btn-primary">
                                 <i class="fas fa-save"></i>
-                                <span>{{ __('messages.save_settings') }}</span>
+                                <span>{{ __('messages.theme.save_colors') }}</span>
                             </button>
-                            <button type="button" class="dash-btn dash-btn-ghost" onclick="resetThemeColors()">
+                            <button type="button" class="dash-btn dash-btn-ghost" @click="resetToDefault()">
                                 <i class="fas fa-undo"></i>
-                                <span>{{ __('messages.reset_theme_colors') }}</span>
+                                <span>{{ __('messages.theme.reset_to_default') }}</span>
                             </button>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </section>
         </div>
     @endif
 
     <script>
-        function resetThemeColors() {
-            if (!confirm(@js(__('messages.confirm_reset_theme_colors')))) return;
-            const defaults = {
-                primary_color: '#667eea',
-                secondary_color: '#764ba2',
-                accent_color: '#4facfe',
-                text_color: '#ffffff',
-                background_color: '#0a0e27',
-                card_color: '#252d56',
-                secondary_bg: '#141b3c',
-                tertiary_bg: '#1e2749',
-                secondary_text: '#e2e8f0',
-                muted_text: '#94a3b8',
+        function themeEditor(savedColors) {
+            // Default Midnight Galaxy colors
+            const DEFAULTS = {
+                page_bg: '#0a0e27',
+                page_bg_2: '#141b3c',
+                page_bg_3: '#1e2749',
+                header_bg_start: '#0a0e27',
+                header_bg_end: '#1e2749',
+                restaurant_name: '#ffffff',
+                restaurant_tagline: '#e2e8f0',
+                text_primary: '#ffffff',
+                text_secondary: '#e2e8f0',
+                text_muted: '#94a3b8',
+                text_price: '#22d3ee',
+                text_option_price: '#86efac',
+                card_bg: '#1a2254',
+                card_border: '#334155',
+                card_border_hover: '#6366f1',
+                card_accent_bar: '#6366f1',
+                card_accent_bar_end: '#8b5cf6',
+                btn_primary: '#6366f1',
+                btn_primary_end: '#8b5cf6',
+                btn_qty: '#6366f1',
+                btn_qty_end: '#8b5cf6',
+                btn_order: '#22c55e',
+                btn_order_end: '#16a34a',
+                pill_bg: '#1a2254',
+                pill_border: '#334155',
+                pill_text: '#94a3b8',
+                pill_active: '#6366f1',
+                pill_active_end: '#8b5cf6',
+                pill_active_text: '#ffffff',
+                option_group_bg: '#0f1631',
+                option_selected_bg: '#2e3a8c',
+                option_input_accent: '#6366f1',
                 input_bg: '#1e2749',
                 input_border: '#334155',
+                input_focus: '#6366f1',
+                input_text: '#ffffff',
+                footer_bg: '#070b1e',
+                footer_text: '#94a3b8',
+                footer_heading: '#ffffff',
+                border: '#334155',
+                border_secondary: '#475569',
             };
-            Object.entries(defaults).forEach(([name, value]) => {
-                const inp = document.querySelector(`input[name="${name}"]`);
-                if (inp) inp.value = value;
-            });
-            window.toast?.info(@js(__('messages.theme_colors_updated')));
+
+            return {
+                activePreset: null,
+
+                applyPreset(colors, presetKey) {
+                    this.activePreset = presetKey;
+                    Object.entries(colors).forEach(([name, value]) => {
+                        const label = document.querySelector(`#themeColorsForm label[x-data*="'${name}'"]`) ||
+                            document.querySelector(`#themeColorsForm input[name="${name}"]`)?.closest('label');
+                        const inp = document.querySelector(`#themeColorsForm input[name="${name}"]`);
+                        if (inp) {
+                            inp.value = value;
+                            // Update Alpine data
+                            if (label && label._x_dataStack) {
+                                label._x_dataStack[0].color = value;
+                            }
+                            // Update preview swatch directly
+                            const preview = inp.closest('.dash-color-field')?.querySelector(
+                                '.dash-color-field-preview');
+                            if (preview) preview.style.background = value;
+                            const hex = inp.closest('.dash-color-field')?.querySelector('.dash-color-hex');
+                            if (hex) hex.textContent = value;
+                        }
+                    });
+                    window.toast?.success(@js(__('messages.theme.preset_applied')));
+                },
+
+                resetToDefault() {
+                    if (!confirm(@js(__('messages.theme.confirm_reset')))) return;
+                    this.activePreset = 'midnight_galaxy';
+                    Object.entries(DEFAULTS).forEach(([name, value]) => {
+                        const inp = document.querySelector(`#themeColorsForm input[name="${name}"]`);
+                        if (inp) inp.value = value;
+                    });
+                    window.toast?.info(@js(__('messages.theme.reset_done')));
+                },
+            };
         }
     </script>
 
@@ -1268,7 +2075,7 @@
         /* ---- Theme colors grid ---- */
         .dash-colors-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 0.85rem;
             margin-bottom: 1rem;
         }
@@ -1276,18 +2083,120 @@
         .dash-color-field {
             background: #0f172a;
             border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 0.65rem;
+            border-radius: 12px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
         }
 
-        .dash-color-field input[type="color"] {
+        .dash-color-field:hover {
+            border-color: #6366f1;
+        }
+
+        .dash-color-field-preview {
             width: 100%;
-            height: 2.25rem;
-            border: 1px solid #334155;
+            height: 36px;
             border-radius: 8px;
-            background: transparent;
+            border: 1px solid #1e293b;
+        }
+
+        .dash-color-input {
+            display: none;
+            /* hidden, triggered by clicking label */
+        }
+
+        .dash-color-field-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .dash-color-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .dash-color-hint {
+            font-size: 0.7rem;
+            color: #64748b;
+            line-height: 1.3;
+        }
+
+        /* ---- Preset themes grid ---- */
+        .theme-presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+            gap: 0.85rem;
+        }
+
+        .theme-preset-btn {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 14px;
+            padding: 0.85rem;
             cursor: pointer;
-            padding: 2px;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            text-align: left;
+        }
+
+        .theme-preset-btn:hover {
+            border-color: #6366f1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-preset-active {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+        }
+
+        .theme-preset-swatches {
+            display: flex;
+            gap: 4px;
+        }
+
+        .theme-swatch {
+            flex: 1;
+            height: 28px;
+            border-radius: 6px;
+            display: block;
+        }
+
+        .theme-preset-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .theme-preset-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .theme-preset-type {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        .theme-preset-type--dark {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+        }
+
+        .theme-preset-type--light {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
         }
 
         /* ---- Current image preview ---- */

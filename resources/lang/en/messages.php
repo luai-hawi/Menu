@@ -436,4 +436,146 @@ return [
         'validation_failed' => 'Please review the fields highlighted below.',
         'network_error' => 'Network error. Please check your connection and try again.',
     ],
+
+    // ─────────────────────────────────────────────
+    //  THEME COLOR CONTROLS
+    // ─────────────────────────────────────────────
+    'theme' => [
+        // Preset panel
+        'preset_themes_title' => 'Preset Themes',
+        'preset_themes_desc'  => 'Pick a ready-made theme to instantly fill all color controls below. You can then fine-tune individual colors to your liking.',
+        'dark'                => 'Dark',
+        'light'               => 'Light',
+        'preset_applied'      => 'Preset theme applied! Scroll down to fine-tune or save.',
+        'confirm_reset'       => 'Reset all colors to the Midnight Galaxy defaults?',
+        'reset_done'          => 'Colors reset to default.',
+        'reset_to_default'    => 'Reset to Default',
+        'save_colors'         => 'Save Theme Colors',
+
+        // Group 1 – Page Background
+        'group_page_bg'      => 'Page Background',
+        'group_page_bg_desc' => 'Controls the overall background gradient of every page.',
+        'page_bg'            => 'Background – Start',
+        'page_bg_hint'       => 'Top / starting color of the full-page gradient.',
+        'page_bg_2'          => 'Background – Mid',
+        'page_bg_2_hint'     => 'Middle stop of the page gradient.',
+        'page_bg_3'          => 'Background – End',
+        'page_bg_3_hint'     => 'Bottom / ending color of the full-page gradient.',
+
+        // Group 2 – Header / Hero
+        'group_header'            => 'Header & Restaurant Identity',
+        'group_header_desc'       => 'Colors for the top hero section: background, restaurant name, and tagline.',
+        'header_bg_start'         => 'Header Background – Start',
+        'header_bg_start_hint'    => 'Left / top color of the header gradient.',
+        'header_bg_end'           => 'Header Background – End',
+        'header_bg_end_hint'      => 'Right / bottom color of the header gradient.',
+        'restaurant_name'         => 'Restaurant Name Color',
+        'restaurant_name_hint'    => 'Color of the big restaurant name text in the header.',
+        'restaurant_tagline'      => 'Restaurant Tagline Color',
+        'restaurant_tagline_hint' => 'Color of the subtitle / tagline line below the name.',
+
+        // Group 3 – Body Text
+        'group_text'          => 'Body Text',
+        'group_text_desc'     => 'General text colors used across headings, descriptions, and labels.',
+        'text_primary'        => 'Primary Text',
+        'text_primary_hint'   => 'Main text: product names, category headings.',
+        'text_secondary'      => 'Secondary Text',
+        'text_secondary_hint' => 'Supporting text: item descriptions.',
+        'text_muted'          => 'Muted / Subtle Text',
+        'text_muted_hint'     => 'Least prominent text: meta info, small labels.',
+
+        // Group 4 – Prices
+        'group_prices'           => 'Prices',
+        'group_prices_desc'      => 'Colors shown next to product and option prices.',
+        'text_price'             => 'Product Price Color',
+        'text_price_hint'        => 'Color of the main price on every product card.',
+        'text_option_price'      => 'Option Add-on Price Color',
+        'text_option_price_hint' => 'Color of the small "+$X.XX" price delta inside option groups.',
+
+        // Group 5 – Product Cards
+        'group_cards'               => 'Product Cards',
+        'group_cards_desc'          => 'Background, border, and accent colors for the menu item cards.',
+        'card_bg'                   => 'Card Background',
+        'card_bg_hint'              => 'Fill color of each product card.',
+        'card_border'               => 'Card Border',
+        'card_border_hint'          => 'Default border color around cards.',
+        'card_border_hover'         => 'Card Border on Hover',
+        'card_border_hover_hint'    => 'Border color when the customer hovers over a card.',
+        'card_accent_bar'           => 'Card Accent Bar – Start',
+        'card_accent_bar_hint'      => 'Left / start color of the decorative gradient bar at the top of each card.',
+        'card_accent_bar_end'       => 'Card Accent Bar – End',
+        'card_accent_bar_end_hint'  => 'Right / end color of the card accent bar gradient.',
+
+        // Group 6 – Buttons
+        'group_buttons'        => 'Buttons & Actions',
+        'group_buttons_desc'   => 'Gradient colors for the three button types: general actions, quantity controls, and the order / WhatsApp button.',
+        'btn_primary'          => 'Action Button – Start',
+        'btn_primary_hint'     => 'Left gradient color for general action buttons (e.g., "View Details").',
+        'btn_primary_end'      => 'Action Button – End',
+        'btn_primary_end_hint' => 'Right gradient color for general action buttons.',
+        'btn_qty'              => 'Quantity Button – Start',
+        'btn_qty_hint'         => 'Left gradient color for the "+" and "−" quantity buttons.',
+        'btn_qty_end'          => 'Quantity Button – End',
+        'btn_qty_end_hint'     => 'Right gradient color for the quantity buttons.',
+        'btn_order'            => 'Order / WhatsApp Button – Start',
+        'btn_order_hint'       => 'Left gradient color for the main "Order via WhatsApp" button.',
+        'btn_order_end'        => 'Order / WhatsApp Button – End',
+        'btn_order_end_hint'   => 'Right gradient color for the order button.',
+
+        // Group 7 – Category Pills
+        'group_pills'            => 'Category Filter Pills',
+        'group_pills_desc'       => 'The clickable pill buttons used to filter menu items by category.',
+        'pill_bg'                => 'Pill Background',
+        'pill_bg_hint'           => 'Background color of inactive category pills.',
+        'pill_border'            => 'Pill Border',
+        'pill_border_hint'       => 'Border color of inactive category pills.',
+        'pill_text'              => 'Pill Text',
+        'pill_text_hint'         => 'Label color of inactive category pills.',
+        'pill_active'            => 'Active Pill – Start',
+        'pill_active_hint'       => 'Left gradient color of the currently selected category pill.',
+        'pill_active_end'        => 'Active Pill – End',
+        'pill_active_end_hint'   => 'Right gradient color of the selected category pill.',
+        'pill_active_text'       => 'Active Pill Text',
+        'pill_active_text_hint'  => 'Label color on the selected / active category pill.',
+
+        // Group 8 – Product Options
+        'group_options'              => 'Product Options',
+        'group_options_desc'         => 'Colors inside the option selection panel (size, extras, etc.).',
+        'option_group_bg'            => 'Option Group Background',
+        'option_group_bg_hint'       => 'Background color of the entire option section.',
+        'option_selected_bg'         => 'Selected Option Background',
+        'option_selected_bg_hint'    => 'Highlight color behind a chosen option row.',
+        'option_input_accent'        => 'Option Input Accent',
+        'option_input_accent_hint'   => 'Color of the radio / checkbox highlight ring.',
+
+        // Group 9 – Search & Inputs
+        'group_inputs'        => 'Search Bar & Input Fields',
+        'group_inputs_desc'   => 'Colors for the search input and any text fields on the page.',
+        'input_bg'            => 'Input Background',
+        'input_bg_hint'       => 'Fill color of text inputs and the search bar.',
+        'input_border'        => 'Input Border',
+        'input_border_hint'   => 'Default border color for inputs.',
+        'input_focus'         => 'Input Focus Ring',
+        'input_focus_hint'    => 'Border / glow color when an input is focused.',
+        'input_text'          => 'Input Text',
+        'input_text_hint'     => 'Color of text typed inside inputs.',
+
+        // Group 10 – Footer
+        'group_footer'         => 'Footer',
+        'group_footer_desc'    => 'Colors for the bottom footer section of the menu page.',
+        'footer_bg'            => 'Footer Background',
+        'footer_bg_hint'       => 'Background color of the footer area.',
+        'footer_text'          => 'Footer Body Text',
+        'footer_text_hint'     => 'Color of regular text in the footer (address, hours, etc.).',
+        'footer_heading'       => 'Footer Heading Text',
+        'footer_heading_hint'  => 'Color of bold headings inside the footer.',
+
+        // Group 11 – Borders
+        'group_borders'           => 'Borders & Dividers',
+        'group_borders_desc'      => 'Thin lines used to separate sections and elements.',
+        'border'                  => 'Primary Border',
+        'border_hint'             => 'Main divider line color used throughout the page.',
+        'border_secondary'        => 'Secondary Border',
+        'border_secondary_hint'   => 'Lighter / subtler divider color for less prominent separators.',
+    ],
 ];
