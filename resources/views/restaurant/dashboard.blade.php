@@ -2090,7 +2090,8 @@
             gap: 0.5rem;
             cursor: pointer;
             transition: border-color 0.2s;
-            position: relative; /* contain the absolute-positioned color input */
+            position: relative;
+            /* contain the absolute-positioned color input */
         }
 
         .dash-color-field:hover {
