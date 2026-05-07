@@ -474,6 +474,11 @@
             font-size: 3rem !important;
             font-weight: 700 !important;
             color: var(--color-btn-primary) !important;
+            /* Reset gradient-text forced by app.css so the dynamic color variable is respected */
+            -webkit-text-fill-color: var(--color-btn-primary) !important;
+            background: none !important;
+            -webkit-background-clip: unset !important;
+            background-clip: unset !important;
             margin-bottom: 0.5rem !important;
         }
 
@@ -544,8 +549,9 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.8) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
             z-index: 2000;
             display: flex;
             align-items: center;
@@ -562,9 +568,10 @@
         }
 
         .modal-content {
-            background: var(--color-card-bg);
-            border: 1px solid var(--color-border-secondary);
-            border-radius: var(--radius-xl);
+            background: var(--color-card-bg) !important;
+            border: 1px solid var(--color-border-secondary) !important;
+            border-radius: var(--radius-xl) !important;
+            box-shadow: var(--shadow-xl) !important;
             padding: 2rem;
             max-width: 500px;
             width: 100%;
@@ -614,26 +621,29 @@
 
         .form-label {
             display: block;
-            color: var(--color-text-secondary);
+            color: var(--color-text-secondary) !important;
             font-weight: 600;
             margin-bottom: 0.5rem;
         }
 
         .form-input {
-            width: 100%;
-            background: var(--color-input-bg);
-            border: 2px solid var(--color-input-border);
-            color: var(--color-input-text);
-            padding: 1rem;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            width: 100% !important;
+            background: var(--color-input-bg) !important;
+            border: 2px solid var(--color-input-border) !important;
+            color: var(--color-input-text) !important;
+            -webkit-text-fill-color: var(--color-input-text) !important;
+            padding: 1rem !important;
+            border-radius: 12px !important;
+            font-size: 1rem !important;
+            transition: all 0.3s ease !important;
         }
 
         .form-input:focus {
-            border-color: var(--color-input-focus);
-            box-shadow: 0 0 0 3px rgba(var(--color-btn-primary-rgb), 0.1);
-            outline: none;
+            background: var(--color-input-bg) !important;
+            border-color: var(--color-input-focus) !important;
+            box-shadow: 0 0 0 3px rgba(var(--color-btn-primary-rgb), 0.1) !important;
+            outline: none !important;
+            -webkit-text-fill-color: var(--color-input-text) !important;
         }
 
         .modal-footer {
@@ -898,8 +908,10 @@
 .focus\:ring-blue-500\/20:focus { box-shadow: 0 0 0 3px rgba(var(--color-btn-primary-rgb), 0.1) !important; }
 
 /* Specific overrides for search bar and language selector */
-#menuSearch { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; border-color: var(--color-input-border) !important; }
-#language-select { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; }
+#menuSearch { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; -webkit-text-fill-color: var(--color-input-text) !important; border-color: var(--color-input-border) !important; }
+#menuSearch:focus { background: var(--color-input-bg) !important; border-color: var(--color-input-focus) !important; }
+#language-select { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; -webkit-text-fill-color: var(--color-input-text) !important; border-color: var(--color-input-border) !important; }
+#language-select:focus { background: var(--color-input-bg) !important; border-color: var(--color-input-focus) !important; }
 #menuSearch::placeholder { color: var(--color-text-muted) !important; }
 
 </style>
