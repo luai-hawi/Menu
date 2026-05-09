@@ -167,10 +167,15 @@
                         <p>{{ __('messages.start_adding_categories') }}</p>
                     </div>
                 @else
-                    <div class="dash-categories">
+                    <div class="dash-categories" x-sortable data-sortable-url="{{ route('categories.reorder') }}"
+                        data-sortable-handle=".drag-handle">
                         @foreach ($categories as $category)
-                            <details class="dash-category" open>
+                            <details class="dash-category" data-id="{{ $category->id }}" open>
                                 <summary class="dash-category-head">
+                                    <span class="drag-handle"
+                                        title="{{ __('messages.optionGroups.drag_to_reorder') }}" @click.stop>
+                                        <i class="fas fa-grip-vertical"></i>
+                                    </span>
                                     <div class="dash-category-title">
                                         <i class="fas fa-folder-open"></i>
                                         <span class="dash-category-name">{{ $category->name }}</span>
@@ -194,7 +199,9 @@
                                         <p>{{ __('messages.products.no_items_hint') }}</p>
                                     </div>
                                 @else
-                                    <div class="dash-items-grid">
+                                    <div class="dash-items-grid" x-sortable
+                                        data-sortable-url="{{ route('items.reorder', $category) }}"
+                                        data-sortable-handle=".drag-handle" data-sortable-fallback>
                                         @foreach ($category->menuItems as $item)
                                             @php
                                                 $itemGroupsPayload = $item->optionGroups
@@ -226,7 +233,12 @@
                                                     ->all();
                                             @endphp
 
-                                            <article class="dash-item" x-data="{ editing: false }" data-item-row>
+                                            <article class="dash-item" x-data="{ editing: false }" data-item-row
+                                                data-id="{{ $item->id }}">
+                                                <span class="drag-handle drag-handle-item"
+                                                    title="{{ __('messages.optionGroups.drag_to_reorder') }}">
+                                                    <i class="fas fa-grip-vertical"></i>
+                                                </span>
                                                 <div class="dash-item-media">
                                                     @if ($item->image)
                                                         <img src="{{ asset('storage/' . $item->image) }}"

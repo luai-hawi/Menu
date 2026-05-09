@@ -275,20 +275,62 @@ Alpine.directive('sortable', (el, { expression }, { evaluate }) => {
 
     new Sortable(el, {
         animation: 150,
-        ghostClass: 'sortable-ghost',
-        dragClass: 'sortable-drag',
-        handle: handleExists ? handleSelector : undefined,
+        ghostClass:    'sortable-ghost',
+        dragClass:     'sortable-drag',
+        handle:        handleExists ? handleSelector : undefined,
+        // forceFallback bypasses native browser DnD — required for CSS grid containers
+        // and for any sortable list inside a <details> element.
+        forceFallback: el.hasAttribute('data-sortable-fallback'),
         onEnd: () => {
             const order = Array.from(el.children).map((row) => row.dataset.id);
             Array.from(el.children).forEach((row, idx) => {
                 const positionInputs = row.querySelectorAll('input[data-position-input]');
                 positionInputs.forEach((inp) => { inp.value = idx; });
             });
-            if (expression) {
-                evaluate(expression, { order });
+            // data-sortable-url: call saveOrder directly (avoids Alpine evaluate scope issues)
+            const url = el.dataset.sortableUrl;
+            if (url) {
+                window.saveOrder(order, url);
+            } else if (expression) {
+                // Fallback for existing x-sortable expressions (e.g. option-groups editor)
+                evaluate(expression, { scope: { order } });
             }
         },
     });
 });
+
+/* ==========================================================================
+ *  saveOrder — persist a drag-and-drop sort result to the server
+ * --------------------------------------------------------------------------
+ *  Called from x-sortable expressions in Blade templates:
+ *      x-sortable="window.saveOrder(order, '/route/url')"
+ *
+ *  `order` is an array of string IDs provided by the x-sortable directive.
+ * ========================================================================== */
+async function saveOrder(order, url) {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': token,
+            },
+            body: JSON.stringify({ order: order.map(Number) }),
+            credentials: 'same-origin',
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (res.ok && payload.success !== false) {
+            window.toast.success(payload.message || 'Order saved');
+        } else {
+            window.toast.error(payload.message || 'Failed to save order');
+        }
+    } catch (e) {
+        window.toast.error((window.KiloI18n || {}).networkError || 'Network error');
+    }
+}
+window.saveOrder = saveOrder;
 
 Alpine.start();

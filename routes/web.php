@@ -36,6 +36,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/menu-item/{item}', [RestaurantController::class, 'updateItem'])->name('item.update');
     Route::delete('/menu-item/{item}', [RestaurantController::class, 'deleteItem'])->name('item.delete');
     Route::delete('/category/{category}', [RestaurantController::class, 'deleteCategory'])->name('category.delete');
+    Route::post('/categories/reorder', [RestaurantController::class, 'reorderCategories'])->name('categories.reorder');
+    Route::post('/category/{category}/items/reorder', [RestaurantController::class, 'reorderItems'])->name('items.reorder');
     Route::post('/restaurant/whatsapp/toggle', [RestaurantController::class, 'toggleWhatsApp'])->name('restaurant.whatsapp.toggle');
     Route::post('/restaurant/whatsapp/update', [RestaurantController::class, 'updateWhatsApp'])->name('restaurant.whatsapp.update');
     Route::post('/restaurant/profile', [RestaurantController::class, 'updateProfile'])->name('restaurant.update.profile')->middleware('auth');

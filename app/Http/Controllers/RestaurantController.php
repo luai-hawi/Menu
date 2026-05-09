@@ -350,6 +350,69 @@ class RestaurantController extends Controller
     }
 
     /* =================================================================
+     * Reordering
+     * ================================================================= */
+
+    public function reorderCategories(Request $request)
+    {
+        $request->validate([
+            'order'   => 'required|array',
+            'order.*' => 'integer',
+        ]);
+
+        $restaurant = $this->getSelectedRestaurant();
+        if (! $restaurant) {
+            return $this->fail($request, __('messages.errors.restaurant_not_found'), 404);
+        }
+
+        $ids = $request->input('order');
+
+        // Ensure every id actually belongs to this restaurant
+        $valid = MenuCategory::whereIn('id', $ids)
+            ->where('restaurant_id', $restaurant->id)
+            ->count();
+
+        if ($valid !== count($ids)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
+        }
+
+        foreach ($ids as $position => $id) {
+            MenuCategory::where('id', $id)->update(['sort_order' => $position]);
+        }
+
+        return $this->ok($request, __('messages.products.flash_saved'));
+    }
+
+    public function reorderItems(Request $request, MenuCategory $category)
+    {
+        $restaurant = $this->getSelectedRestaurant();
+        if (! $restaurant || $category->restaurant_id !== $restaurant->id) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
+        }
+
+        $request->validate([
+            'order'   => 'required|array',
+            'order.*' => 'integer',
+        ]);
+
+        $ids = $request->input('order');
+
+        $valid = MenuItem::whereIn('id', $ids)
+            ->where('menu_category_id', $category->id)
+            ->count();
+
+        if ($valid !== count($ids)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
+        }
+
+        foreach ($ids as $position => $id) {
+            MenuItem::where('id', $id)->update(['sort_order' => $position]);
+        }
+
+        return $this->ok($request, __('messages.products.flash_saved'));
+    }
+
+    /* =================================================================
      * WhatsApp settings
      * ================================================================= */
 
