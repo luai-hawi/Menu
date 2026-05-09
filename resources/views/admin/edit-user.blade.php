@@ -25,11 +25,11 @@
                 </div>
 
                 <!-- Error Messages -->
-                @if($errors->any())
+                @if ($errors->any())
                     <div class="alert alert-error mb-6">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
                         <ul class="list-disc list-inside">
-                            @foreach($errors->all() as $error)
+                            @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
                         </ul>
@@ -37,7 +37,7 @@
                 @endif
 
                 <!-- Success Message -->
-                @if(session('success'))
+                @if (session('success'))
                     <div class="alert alert-success mb-6">
                         <i class="fas fa-check-circle mr-2"></i>
                         {{ session('success') }}
@@ -55,13 +55,8 @@
                                 <i class="fas fa-user mr-2"></i>
                                 {{ __('messages.full_name') }}
                             </label>
-                            <input type="text"
-                                   id="name"
-                                   name="name"
-                                   value="{{ old('name', $user->name) }}"
-                                   placeholder="{{ __('messages.enter_full_name') }}"
-                                   class="form-input"
-                                   required>
+                            <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}"
+                                placeholder="{{ __('messages.enter_full_name') }}" class="form-input" required>
                         </div>
 
                         <!-- Email -->
@@ -70,13 +65,9 @@
                                 <i class="fas fa-envelope mr-2"></i>
                                 {{ __('messages.email_address') }}
                             </label>
-                            <input type="email"
-                                   id="email"
-                                   name="email"
-                                   value="{{ old('email', $user->email) }}"
-                                   placeholder="{{ __('messages.enter_your_email') }}"
-                                   class="form-input"
-                                   required>
+                            <input type="email" id="email" name="email"
+                                value="{{ old('email', $user->email) }}"
+                                placeholder="{{ __('messages.enter_your_email') }}" class="form-input" required>
                             <div class="form-help">
                                 <i class="fas fa-info-circle mr-2"></i>
                                 {{ __('messages.email_change_warning') }}
@@ -89,12 +80,9 @@
                                 <i class="fas fa-phone mr-2"></i>
                                 {{ __('messages.phone_number') }}
                             </label>
-                            <input type="tel"
-                                   id="phone"
-                                   name="phone"
-                                   value="{{ old('phone', $user->phone) }}"
-                                   placeholder="{{ __('messages.enter_phone_number') }}"
-                                   class="form-input">
+                            <input type="tel" id="phone" name="phone"
+                                value="{{ old('phone', $user->phone) }}"
+                                placeholder="{{ __('messages.enter_phone_number') }}" class="form-input">
                             <div class="form-help">
                                 <i class="fas fa-info-circle mr-2"></i>
                                 {{ __('messages.phone_optional') }}
@@ -112,12 +100,9 @@
                                     <i class="fas fa-lock mr-2"></i>
                                     {{ __('messages.new_password') }}
                                 </label>
-                                <input type="password"
-                                       id="password"
-                                       name="password"
-                                       placeholder="{{ __('messages.enter_new_password') }}"
-                                       class="form-input"
-                                       minlength="8">
+                                <input type="password" id="password" name="password"
+                                    placeholder="{{ __('messages.enter_new_password') }}" class="form-input"
+                                    minlength="8">
                                 <div class="form-help">
                                     <i class="fas fa-info-circle mr-2"></i>
                                     {{ __('messages.password_min_8_chars') }}
@@ -130,12 +115,9 @@
                                     <i class="fas fa-lock mr-2"></i>
                                     {{ __('messages.confirm_new_password') }}
                                 </label>
-                                <input type="password"
-                                       id="password_confirmation"
-                                       name="password_confirmation"
-                                       placeholder="{{ __('messages.confirm_new_password') }}"
-                                       class="form-input"
-                                       minlength="8">
+                                <input type="password" id="password_confirmation" name="password_confirmation"
+                                    placeholder="{{ __('messages.confirm_new_password') }}" class="form-input"
+                                    minlength="8">
                             </div>
                         </div>
 
@@ -146,19 +128,21 @@
                                 Subscription
                             </h4>
                             @if ($subscription)
-                            <p class="section-description">
-                                Current amount: <strong class="text-white">${{ number_format($subscription->amount, 2) }}</strong>
-                                @if ($subscription->expires_at)
-                                    &mdash; {{ $subscription->expires_at->isPast() ? 'Expired' : 'Expires' }}
-                                    <span class="{{ $subscription->expires_at->isPast() ? 'text-red-400' : 'text-green-400' }}">
-                                        {{ $subscription->expires_at->diffForHumans() }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-400">&mdash; No payment date set yet</span>
-                                @endif
-                            </p>
+                                <p class="section-description">
+                                    Current amount: <strong
+                                        class="text-white">${{ number_format($subscription->amount, 2) }}</strong>
+                                    @if ($subscription->expires_at)
+                                        &mdash; {{ $subscription->expires_at->isPast() ? 'Expired' : 'Expires' }}
+                                        <span
+                                            class="{{ $subscription->expires_at->isPast() ? 'text-red-400' : 'text-green-400' }}">
+                                            {{ $subscription->expires_at->diffForHumans() }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">&mdash; No payment date set yet</span>
+                                    @endif
+                                </p>
                             @else
-                            <p class="section-description">No subscription record yet. Set a date to create one.</p>
+                                <p class="section-description">No subscription record yet. Set a date to create one.</p>
                             @endif
 
                             <div class="form-field">
@@ -166,11 +150,9 @@
                                     <i class="fas fa-calendar-check mr-2"></i>
                                     Next Payment Date
                                 </label>
-                                <input type="date"
-                                       id="expires_at"
-                                       name="expires_at"
-                                       value="{{ old('expires_at', $subscription && $subscription->expires_at ? $subscription->expires_at->format('Y-m-d') : '') }}"
-                                       class="form-input">
+                                <input type="date" id="expires_at" name="expires_at"
+                                    value="{{ old('expires_at', $subscription && $subscription->expires_at ? $subscription->expires_at->format('Y-m-d') : '') }}"
+                                    class="form-input">
                                 @error('expires_at')
                                     <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
                                 @enderror

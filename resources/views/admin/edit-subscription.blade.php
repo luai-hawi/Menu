@@ -24,14 +24,10 @@
                         <label for="amount" class="block text-sm font-medium text-white mb-2">
                             Subscription Cost ($)
                         </label>
-                        <input type="number"
-                               id="amount"
-                               name="amount"
-                               value="{{ old('amount', $subscription->amount) }}"
-                               step="0.01"
-                               min="0"
-                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               required>
+                        <input type="number" id="amount" name="amount"
+                            value="{{ old('amount', $subscription->amount) }}" step="0.01" min="0"
+                            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required>
                         @error('amount')
                             <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
                         @enderror
@@ -41,26 +37,28 @@
                         <label for="next_payment_date" class="block text-sm font-medium text-white mb-2">
                             Next Payment Date
                         </label>
-                        <input type="date"
-                               id="next_payment_date"
-                               name="next_payment_date"
-                               value="{{ old('next_payment_date', $subscription->expires_at ? $subscription->expires_at->format('Y-m-d') : '') }}"
-                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="date" id="next_payment_date" name="next_payment_date"
+                            value="{{ old('next_payment_date', $subscription->expires_at ? $subscription->expires_at->format('Y-m-d') : '') }}"
+                            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @error('next_payment_date')
                             <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
                         @enderror
                         @if ($subscription->expires_at)
-                            <p class="mt-1 text-sm {{ $subscription->expires_at->isPast() ? 'text-red-400' : 'text-gray-400' }}">
-                                {{ $subscription->expires_at->isPast() ? 'Expired' : 'Due' }} {{ $subscription->expires_at->diffForHumans() }}
+                            <p
+                                class="mt-1 text-sm {{ $subscription->expires_at->isPast() ? 'text-red-400' : 'text-gray-400' }}">
+                                {{ $subscription->expires_at->isPast() ? 'Expired' : 'Due' }}
+                                {{ $subscription->expires_at->diffForHumans() }}
                             </p>
                         @endif
                     </div>
 
                     <div class="flex justify-end space-x-3">
-                        <a href="{{ route('admin.index') }}" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors">
+                        <a href="{{ route('admin.index') }}"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors">
                             Cancel
                         </a>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors">
+                        <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors">
                             Update Cost
                         </button>
                     </div>
