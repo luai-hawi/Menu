@@ -139,6 +139,44 @@
                             </div>
                         </div>
 
+                        <!-- Subscription Section -->
+                        <div class="password-section">
+                            <h4 class="section-title">
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                Subscription
+                            </h4>
+                            @if ($subscription)
+                            <p class="section-description">
+                                Current amount: <strong class="text-white">${{ number_format($subscription->amount, 2) }}</strong>
+                                @if ($subscription->expires_at)
+                                    &mdash; {{ $subscription->expires_at->isPast() ? 'Expired' : 'Expires' }}
+                                    <span class="{{ $subscription->expires_at->isPast() ? 'text-red-400' : 'text-green-400' }}">
+                                        {{ $subscription->expires_at->diffForHumans() }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">&mdash; No payment date set yet</span>
+                                @endif
+                            </p>
+                            @else
+                            <p class="section-description">No subscription record yet. Set a date to create one.</p>
+                            @endif
+
+                            <div class="form-field">
+                                <label for="expires_at" class="form-label">
+                                    <i class="fas fa-calendar-check mr-2"></i>
+                                    Next Payment Date
+                                </label>
+                                <input type="date"
+                                       id="expires_at"
+                                       name="expires_at"
+                                       value="{{ old('expires_at', $subscription && $subscription->expires_at ? $subscription->expires_at->format('Y-m-d') : '') }}"
+                                       class="form-input">
+                                @error('expires_at')
+                                    <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
                         <!-- Form Actions -->
                         <div class="form-actions">
                             <button type="submit" class="btn btn-success btn-lg">

@@ -104,6 +104,8 @@
                                     <th class="text-left py-4 px-4 text-gray-300 font-semibold">
                                         {{ __('messages.created') }}</th>
                                     <th class="text-left py-4 px-4 text-gray-300 font-semibold">
+                                        Next Payment</th>
+                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
                                         {{ __('messages.status') }}</th>
                                     <th class="text-left py-4 px-4 text-gray-300 font-semibold">
                                         {{ __('messages.actions') }}</th>
@@ -159,6 +161,35 @@
                                             <div class="text-gray-400 text-sm">
                                                 {{ $restaurant->created_at->diffForHumans() }}
                                             </div>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            @php $sub = $restaurant->user->subscriptions->first(); @endphp
+                                            @if ($sub && $sub->expires_at)
+                                                @php $isExpired = $sub->expires_at->isPast(); @endphp
+                                                <div class="text-white font-medium">
+                                                    <i class="fas fa-calendar-alt {{ $isExpired ? 'text-red-400' : 'text-green-400' }} mr-2"></i>
+                                                    {{ $sub->expires_at->format('M j, Y') }}
+                                                </div>
+                                                <div class="{{ $isExpired ? 'text-red-400' : 'text-gray-400' }} text-sm">
+                                                    {{ $sub->expires_at->diffForHumans() }}
+                                                </div>
+                                                <a href="{{ route('admin.subscription.edit', $sub) }}"
+                                                   class="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block">
+                                                    <i class="fas fa-edit mr-1"></i>Edit date
+                                                </a>
+                                            @elseif ($sub)
+                                                <span class="text-gray-500 text-sm">No date set</span>
+                                                <a href="{{ route('admin.subscription.edit', $sub) }}"
+                                                   class="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block">
+                                                    <i class="fas fa-edit mr-1"></i>Set date
+                                                </a>
+                                            @else
+                                                <span class="text-gray-500 text-sm">No subscription</span>
+                                                <a href="{{ route('admin.user.edit', $restaurant->user) }}"
+                                                   class="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block">
+                                                    <i class="fas fa-edit mr-1"></i>Set date
+                                                </a>
+                                            @endif
                                         </td>
                                         <td class="py-4 px-4">
                                             <span

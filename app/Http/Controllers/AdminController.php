@@ -24,7 +24,7 @@ class AdminController extends Controller
 
     public function index()
     {
-        $restaurants = Restaurant::with('user')->latest()->get();
+        $restaurants = Restaurant::with(['user', 'user.subscriptions'])->latest()->get();
 
         // Get users who are either restaurant owners by role OR have restaurants
         $users = User::where(function ($query) {
@@ -212,19 +212,27 @@ class AdminController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:0',
+            'next_payment_date' => 'nullable|date',
         ]);
 
         $subscription->update([
             'amount' => $request->amount,
+            'expires_at' => $request->filled('next_payment_date')
+                ? \Carbon\Carbon::parse($request->next_payment_date)
+                : $subscription->expires_at,
         ]);
 
-        return redirect()->route('admin.index')->with('success', 'Subscription cost updated successfully.');
+        return redirect()->route('admin.index')->with('success', 'Subscription updated successfully.');
     }
 
     public function markPaid(Subscription $subscription)
     {
+        $base = $subscription->expires_at && $subscription->expires_at->isFuture()
+            ? $subscription->expires_at
+            : now();
+
         $subscription->paid_at = now();
-        $subscription->expires_at = now()->addYear();
+        $subscription->expires_at = $base->addYear();
         $subscription->save();
 
         return redirect()->back()->with('success', 'Subscription marked as paid.');
@@ -253,7 +261,8 @@ class AdminController extends Controller
 
     public function editUser(User $user)
     {
-        return view('admin.edit-user', compact('user'));
+        $subscription = $user->subscriptions()->first();
+        return view('admin.edit-user', compact('user', 'subscription'));
     }
 
     public function updateUser(Request $request, User $user)
@@ -263,6 +272,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
+            'expires_at' => 'nullable|date',
         ]);
 
         // Update user data
@@ -278,6 +288,23 @@ class AdminController extends Controller
         }
 
         $user->update($updateData);
+
+        // Update subscription expiration date if provided
+        if ($request->filled('expires_at')) {
+            $subscription = $user->subscriptions()->firstOrCreate(
+                ['user_id' => $user->id],
+                ['amount' => 100.00]
+            );
+            $subscription->expires_at = \Carbon\Carbon::parse($request->expires_at);
+            $subscription->save();
+        } elseif ($request->has('expires_at')) {
+            // Field submitted but empty — clear the date
+            $subscription = $user->subscriptions()->first();
+            if ($subscription) {
+                $subscription->expires_at = null;
+                $subscription->save();
+            }
+        }
 
         return redirect()->route('admin.index')->with('success', __('messages.user_updated_successfully'));
     }
