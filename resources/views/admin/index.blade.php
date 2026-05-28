@@ -386,8 +386,20 @@
 
                 <p class="text-gray-300 mt-6">
                     {{ __('messages.confirm_delete_restaurant') }} <strong><span
-                            id="restaurant-name"></span></strong>?
+                            id="restaurant-name"></span></strong>.
                 </p>
+
+                <div class="mt-4">
+                    <label for="confirm-name-input" class="block text-sm font-medium text-gray-300 mb-2">
+                        {{ __('messages.type_restaurant_name_to_confirm') }}
+                    </label>
+                    <input type="text" id="confirm-name-input" name="confirm_name" autocomplete="off"
+                        class="w-full rounded-md border border-gray-600 bg-gray-700 text-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="{{ __('messages.restaurant_name_placeholder') }}">
+                    <p id="confirm-name-error" class="text-red-400 text-xs mt-1 hidden">
+                        {{ __('messages.name_does_not_match') }}
+                    </p>
+                </div>
             </div>
 
             <div class="modal-footer">
@@ -395,10 +407,11 @@
                     <i class="fas fa-times mr-2"></i>
                     {{ __('messages.cancel') }}
                 </button>
-                <form id="delete-form" method="POST" class="inline">
+                <form id="delete-form" method="POST" class="inline" onsubmit="return validateDeleteForm(event)">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">
+                    <input type="hidden" id="delete-confirm-name-hidden" name="confirm_name" value="">
+                    <button type="submit" id="delete-submit-btn" class="btn btn-danger" disabled>
                         <i class="fas fa-trash mr-2"></i>
                         {{ __('messages.delete_restaurant') }}
                     </button>
@@ -408,16 +421,46 @@
     </div>
 
     <script>
+        let currentRestaurantName = '';
+
         function confirmDelete(deleteUrl, restaurantName) {
+            currentRestaurantName = restaurantName;
             document.getElementById('restaurant-name').textContent = restaurantName;
             document.getElementById('delete-form').action = deleteUrl;
+            document.getElementById('confirm-name-input').value = '';
+            document.getElementById('confirm-name-error').classList.add('hidden');
+            document.getElementById('delete-submit-btn').disabled = true;
             document.getElementById('delete-modal').classList.remove('hidden');
             document.getElementById('delete-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('confirm-name-input').focus(), 100);
         }
 
         function closeDeleteModal() {
             document.getElementById('delete-modal').classList.add('hidden');
             document.getElementById('delete-modal').style.display = 'none';
+            document.getElementById('confirm-name-input').value = '';
+            document.getElementById('confirm-name-error').classList.add('hidden');
+            document.getElementById('delete-submit-btn').disabled = true;
+        }
+
+        document.getElementById('confirm-name-input').addEventListener('input', function() {
+            const match = this.value === currentRestaurantName;
+            document.getElementById('delete-submit-btn').disabled = !match;
+            document.getElementById('delete-confirm-name-hidden').value = this.value;
+            if (this.value.length > 0 && !match) {
+                document.getElementById('confirm-name-error').classList.remove('hidden');
+            } else {
+                document.getElementById('confirm-name-error').classList.add('hidden');
+            }
+        });
+
+        function validateDeleteForm(e) {
+            if (document.getElementById('confirm-name-input').value !== currentRestaurantName) {
+                e.preventDefault();
+                document.getElementById('confirm-name-error').classList.remove('hidden');
+                return false;
+            }
+            return true;
         }
 
         // Close modal when clicking outside

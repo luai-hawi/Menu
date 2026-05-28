@@ -152,8 +152,14 @@ class AdminController extends Controller
         return redirect()->route('admin.index')->with('success', "Restaurant '{$restaurant->name}' has been {$status}.");
     }
 
-    public function deleteRestaurant(Restaurant $restaurant)
+    public function deleteRestaurant(Request $request, Restaurant $restaurant)
     {
+        // Require the admin to confirm by typing the restaurant name
+        if ($request->input('confirm_name') !== $restaurant->name) {
+            return redirect()->route('admin.index')
+                ->with('error', __('messages.delete_confirmation_mismatch'));
+        }
+
         DB::beginTransaction();
 
         try {
@@ -164,10 +170,13 @@ class AdminController extends Controller
                 $this->deleteImageSafely($restaurant->logo);
             }
 
-            // Get all menu categories with their items
-            $categories = $restaurant->menuCategories()->with('menuItems')->get();
+            // Delete restaurant background image if exists
+            if ($restaurant->background_image) {
+                $this->deleteImageSafely($restaurant->background_image);
+            }
 
-            // Delete all menu item images first
+            // Get all menu categories with their items and delete item images
+            $categories = $restaurant->menuCategories()->with('menuItems')->get();
             foreach ($categories as $category) {
                 foreach ($category->menuItems as $item) {
                     if ($item->image) {
@@ -176,15 +185,8 @@ class AdminController extends Controller
                 }
             }
 
-            $owner = $restaurant->user;
-
-            // Delete the restaurant (this will cascade delete categories and items due to foreign keys)
+            // Delete the restaurant — DB cascades handle categories, items, option groups, options
             $restaurant->delete();
-
-            //delete user if they have no other restaurants
-            if ($owner && $owner->restaurants()->count() === 0) {
-                $owner->delete();
-            }
 
             DB::commit();
 
@@ -192,7 +194,6 @@ class AdminController extends Controller
         } catch (Exception $e) {
             DB::rollback();
 
-            // Log the error for debugging
             \Log::error('Failed to delete restaurant: ' . $e->getMessage(), [
                 'restaurant_id' => $restaurant->id,
                 'restaurant_name' => $restaurant->name,
