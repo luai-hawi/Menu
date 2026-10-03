@@ -19,6 +19,7 @@ class MenuItemOptionGroup extends Model
         'menu_item_id',
         'group_type',
         'group_name_ar',
+        'group_name_en',
         'min_choices',
         'max_choices',
         'is_required',
@@ -60,13 +61,8 @@ class MenuItemOptionGroup extends Model
         return $this->group_type === self::TYPE_MULTIPLE;
     }
 
-    /**
-     * Localized group name. Arabic is the only stored value for now; the
-     * method signature is preserved so future locales can plug in without
-     * changing the callers.
-     */
     public function nameFor(?string $locale = null): string
     {
-        return (string) ($this->group_name_ar ?? '');
+        return (string) (($locale ?? app()->getLocale()) === 'en' && filled($this->group_name_en) ? $this->group_name_en : $this->group_name_ar);
     }
 }

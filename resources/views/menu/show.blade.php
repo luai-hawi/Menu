@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $restaurant->name }} - Menu</title>
+    <title>{{ $restaurant->nameFor($menuLocale) }} - {{ __('messages.all_categories') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -913,15 +913,26 @@
 #language-select { background: var(--color-input-bg) !important; color: var(--color-input-text) !important; -webkit-text-fill-color: var(--color-input-text) !important; border-color: var(--color-input-border) !important; }
 #language-select:focus { background: var(--color-input-bg) !important; border-color: var(--color-input-focus) !important; }
 #menuSearch::placeholder { color: var(--color-text-muted) !important; }
+        #menuSearch { padding-inline-start: 3rem; padding-inline-end: 1rem; }
+        .header-gradient.has-background h1, .header-gradient.has-background p { color: #fff !important; text-shadow: 0 1px 3px #000; }
+        .menu-search-icon { inset-inline-start: 1rem; }
+        .welcome-scene { color: #fff; background: #111827; padding: 1.5rem; border-radius: 1rem; margin: 1.5rem auto; max-width: 48rem; text-align: center; }
+        .welcome-scene video { width: 100%; max-height: 24rem; object-fit: contain; }
+        .welcome-scene button, .welcome-scene a { display: inline-block; margin: .5rem; padding: .65rem 1rem; background: #fff; color: #111827; border-radius: .5rem; font-weight: 700; }
+        .welcome-scene [hidden] { display: none; }
+        [dir="rtl"] .option-choice { text-align: start; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+        }
 
 </style>
 </head>
 <body>
     <!-- Language Selector -->
-    <div style="position: absolute; top: 16px; left: 16px; z-index: 100;">
+    <div style="position: absolute; top: 16px; inset-inline-start: 16px; z-index: 100;">
         <div class="rounded-lg p-2 flex items-center space-x-2" style="background: transparent; border: 1px solid rgba(var(--color-btn-primary-rgb), 0.3);">
             <i class="fas fa-globe" style="color: var(--color-text-primary);"></i>
-            <select id="language-select" style="background: transparent; color: var(--color-text-primary); border: none; outline: none; font-size: 0.875rem;">
+            <select id="language-select" aria-label="{{ __('studio.language') }}" style="background: transparent; color: var(--color-text-primary); border: none; outline: none; font-size: 0.875rem;">
                 <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>English</option>
                 <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>العربية</option>
             </select>
@@ -929,7 +940,7 @@
     </div>
 
     <!-- Company Logo - Top Right -->
-    <div style="position: absolute; top: 16px; right: 16px; z-index: 100;">
+    <div style="position: absolute; top: 16px; inset-inline-end: 16px; z-index: 100;">
         <div>
             <img src="{{ asset('images/logo.png') }}" alt="Hawi Tech" style="width: 90px; height: 90px; object-fit: contain;filter: brightness(0) invert(1);transition: all 0.3s ease;">
         </div>
@@ -938,7 +949,7 @@
 
 
     <!-- Header -->
-    <div class="header-gradient">
+    <div class="header-gradient {{ $restaurant->background_image ? 'has-background' : '' }}">
         @if($restaurant->background_image)
             <div class="absolute inset-0" style="background-image: url('{{ asset('storage/' . $restaurant->background_image) }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
                 <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, 0.6);"></div>
@@ -948,19 +959,19 @@
             <div class="text-center">
                 @if($restaurant->logo)
                     <img src="{{ asset('storage/' . $restaurant->logo) }}"
-                         alt="{{ $restaurant->name }}"
+                         alt="{{ $restaurant->nameFor($menuLocale) }}"
                          class="restaurant-logo mx-auto mb-8 animate-bounce-in">
                 @else
                     <div class="restaurant-logo-placeholder mx-auto mb-8 animate-bounce-in">
-                        <span style="color: var(--color-pill-active-text); font-size: 3rem; font-weight: 700;">{{ substr($restaurant->name, 0, 1) }}</span>
+                        <span style="color: var(--color-pill-active-text); font-size: 3rem; font-weight: 700;">{{ mb_substr($restaurant->nameFor($menuLocale), 0, 1) }}</span>
                     </div>
                 @endif
                 <h1 class="text-6xl md:text-7xl font-bold mb-6 font-display animate-slide-up" style="color: var(--color-restaurant-name);">
-                    {{ $restaurant->name }}
+                    {{ $restaurant->nameFor($menuLocale) }}
                 </h1>
-                @if($restaurant->description)
+                @if($restaurant->descriptionFor($menuLocale))
                     <p class="text-xl md:text-2xl max-w-3xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed" style="color: var(--color-restaurant-tagline);">
-                        {{ $restaurant->description }}
+                        {{ $restaurant->descriptionFor($menuLocale) }}
                     </p>
                 @endif
             </div>
@@ -1004,13 +1015,30 @@
 
 
 <!-- Search and Category Navigation -->
+@if($restaurant->welcome_video || $restaurant->welcomeTitleFor($menuLocale) || $restaurant->welcomeMessageFor($menuLocale))
+    <section id="welcomeScene" class="welcome-scene" aria-label="{{ __('studio.welcome_scene') }}">
+        @if($restaurant->welcomeTitleFor($menuLocale))
+            <h2 class="text-2xl font-bold">{{ $restaurant->welcomeTitleFor($menuLocale) }}</h2>
+        @endif
+        @if($restaurant->welcomeMessageFor($menuLocale))
+            <p class="my-3">{{ $restaurant->welcomeMessageFor($menuLocale) }}</p>
+        @endif
+        @if($restaurant->welcome_video)
+            <video id="welcomeVideo" muted playsinline controls preload="none"
+                aria-label="{{ __('studio.welcome_video') }}" src="{{ asset('storage/'.$restaurant->welcome_video) }}"></video>
+            <button type="button" id="skipWelcome">{{ __('studio.skip_video') }}</button>
+        @endif
+        <a href="#menuContent" id="enterMenu">{{ __('studio.enter_menu') }}</a>
+    </section>
+@endif
 <div class="max-w-7xl mx-auto px-4 py-8" style="background: var(--color-page-bg);">
     <!-- Search Bar -->
     <div class="max-w-md mx-auto mb-6">
         <div class="relative">
             <input type="text" id="menuSearch" placeholder="{{ __('messages.search_menu') }}"
-                   class="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                   aria-label="{{ __('messages.search_menu') }}"
+                   class="w-full py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+            <i class="fas fa-search menu-search-icon absolute top-1/2 transform -translate-y-1/2 text-gray-400"></i>
         </div>
     </div>
 
@@ -1022,7 +1050,7 @@
             </button>
             @foreach($restaurant->activeMenuCategories as $category)
                 <button onclick="filterByCategory('{{ $category->id }}')" class="category-pill" data-category="{{ $category->id }}">
-                    {{ $category->name }}
+                    {{ $category->nameFor($menuLocale) }}
                 </button>
             @endforeach
         </div>
@@ -1032,7 +1060,7 @@
 
 
     <!-- Menu Content -->
-    <div class="max-w-7xl mx-auto px-4 py-16">
+    <main id="menuContent" tabindex="-1" class="max-w-7xl mx-auto px-4 py-16">
         @if($restaurant->activeMenuCategories->isEmpty())
             <div class="empty-state">
                 <div class="empty-state-icon">🍽️</div>
@@ -1043,7 +1071,7 @@
             @foreach($restaurant->activeMenuCategories as $category)
                 <div class="mb-20" data-category-section="{{ $category->id }}">
                     <div class="category-header animate-fade-in-up">
-                        <h2>{{ $category->name }}</h2>
+                        <h2>{{ $category->nameFor($menuLocale) }}</h2>
                     </div>
 
                     <div class="responsive-grid">
@@ -1072,15 +1100,16 @@
                                 data-item-id="{{ $item->id }}"
                                 x-data="menuItemCard({
                                     id: {{ $item->id }},
-                                    name: @js($item->name),
+                                    name: @js($item->nameFor($menuLocale)),
                                     basePrice: {{ (float) $item->price }},
                                     groups: @js($itemOptionsPayload)
                                 })"
+                                @menu-cart-cleared.window="quantity = 0"
                             >
                                 <!-- Item Image -->
                                 @if($item->image)
                                     <img src="{{ asset('storage/' . $item->image) }}"
-                                         alt="{{ $item->name }}"
+                                         alt="{{ $item->nameFor($menuLocale) }}"
                                          class="menu-image">
                                 @else
                                     <div class="menu-image-placeholder">
@@ -1091,9 +1120,9 @@
                                 <!-- Item Content -->
                                 <div class="menu-item-content">
                                     <div class="menu-item-header">
-                                        <h3 class="menu-item-title">{{ $item->name }}</h3>
-                                        @if($item->description)
-                                            <p class="menu-item-description">{{ $item->description }}</p>
+                                        <h3 class="menu-item-title">{{ $item->nameFor($menuLocale) }}</h3>
+                                        @if($item->descriptionFor($menuLocale))
+                                            <p class="menu-item-description">{{ $item->descriptionFor($menuLocale) }}</p>
                                         @endif
                                     </div>
 
@@ -1149,13 +1178,16 @@
                                         @if($restaurant->whatsapp_orders_enabled && $restaurant->whatsapp_number)
                                             <div class="quantity-control flex flex-col items-center">
                                                 <button type="button" class="quantity-btn"
+                                                        aria-label="{{ __('studio.increase_quantity') }}"
                                                         @click="changeQuantity(1)"
                                                         :disabled="!canAddToCart()">+</button>
                                                 <input type="number" class="quantity-input"
-                                                       :value="quantity" min="0" max="999"
-                                                       @change="setQuantity($event.target.value)"
+                                                       aria-label="{{ __('studio.quantity') }}"
+                                                       :value="quantity" min="0" max="99"
+                                                       @change="setQuantity($event.target.value); $event.target.value = quantity"
                                                        id="qty-{{ $item->id }}">
                                                 <button type="button" class="quantity-btn"
+                                                        aria-label="{{ __('studio.decrease_quantity') }}"
                                                         @click="changeQuantity(-1)">-</button>
                                             </div>
                                         @endif
@@ -1167,7 +1199,7 @@
                 </div>
             @endforeach
         @endif
-    </div>
+    </main>
 
     <!-- Order Summary Bar (only show if WhatsApp ordering is enabled) -->
     @if($restaurant->whatsapp_orders_enabled && $restaurant->whatsapp_number)
@@ -1182,10 +1214,10 @@
         </div>
 
         <!-- Order Modal -->
-        <div class="modal" id="orderModal">
+        <div class="modal" id="orderModal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>{{ __('messages.your_order') }}</h3>
+                    <h3 id="orderModalTitle">{{ __('messages.your_order') }}</h3>
                     <p style="color: var(--color-text-muted);">{{ __('messages.review_items') }}</p>
                 </div>
 
@@ -1193,13 +1225,13 @@
                     <div id="orderItems" class="mb-6"></div>
 
                     <div class="form-group">
-                        <label class="form-label">{{ __('messages.additional_notes') }}</label>
+                        <label class="form-label" for="orderNotes">{{ __('messages.additional_notes') }}</label>
                         <textarea id="orderNotes" class="form-input" rows="3"
                                   placeholder="{{ __('messages.notes_placeholder') }}"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">{{ __('messages.your_location') }}</label>
+                        <label class="form-label" for="orderLocation">{{ __('messages.your_location') }}</label>
                         <textarea id="orderLocation" class="form-input" rows="2"
                                   placeholder="{{ __('messages.location_placeholder') }}" required></textarea>
                     </div>
@@ -1224,7 +1256,7 @@
         <div class="max-w-6xl mx-auto px-4 py-16">
             <div class="text-center">
                 <!-- Restaurant Info -->
-                <h3 class="text-2xl font-bold mb-4" style="color: var(--color-footer-heading);">{{ $restaurant->name }}</h3>
+                <h3 class="text-2xl font-bold mb-4" style="color: var(--color-footer-heading);">{{ $restaurant->nameFor($menuLocale) }}</h3>
                 <p class="mb-8 text-lg" style="color: var(--color-footer-text);">{{ __('messages.thank_you_visiting') }}</p>
 
                 <!-- Company Info -->
@@ -1249,7 +1281,6 @@
         </div>
     </footer>
 
-    @if($restaurant->whatsapp_orders_enabled && $restaurant->whatsapp_number)
     <script>
         /*
          * Cart model
@@ -1258,10 +1289,9 @@
          * the SAME dish with different option selections is treated as a
          * separate line item (customer expectation: 1x Large Cheese vs 1x Small).
          */
-        const whatsappNumber = "{{ $restaurant->whatsapp_number }}";
-        const restaurantName = "{{ $restaurant->name }}";
+        const whatsappNumber = @js($restaurant->whatsapp_orders_enabled ? $restaurant->whatsapp_number : null);
         const translations = {
-            newOrderFrom: @js(__('messages.new_order_from', ['restaurant' => $restaurant->name])),
+            newOrderFrom: @js(__('messages.new_order_from', ['restaurant' => $restaurant->nameFor($menuLocale)])),
             orderDetails: @js(__('messages.order_details')),
             total: @js(__('messages.total', ['total' => ':total'])),
             totalLabel: @js(__('messages.total_label')),
@@ -1279,6 +1309,26 @@
 
         // Global cart store on window so all menuItemCard instances share state.
         window.__menuCart = window.__menuCart || {};
+        const cartStorageKey = @js('menu-cart:'.$restaurant->slug);
+        let savedCart = [];
+        try {
+            const stored = JSON.parse(sessionStorage.getItem(cartStorageKey) || '[]');
+            savedCart = Array.isArray(stored) ? stored : [];
+        } catch (_) {}
+
+        function persistCart() {
+            try {
+                sessionStorage.setItem(cartStorageKey, JSON.stringify(Object.values(window.__menuCart).map(item => ({
+                    itemId: item.itemId, optionIds: item.optionIds, quantity: item.quantity,
+                }))));
+            } catch (_) {}
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[char]));
+        }
 
         function cartKeyFor(itemId, optionIds) {
             const sorted = [...optionIds].sort((a, b) => a - b).join(',');
@@ -1315,6 +1365,20 @@
                 quantity: 0,
 
                 init() {
+                    if (whatsappNumber) {
+                        savedCart.filter(entry => entry && entry.itemId === this.id).forEach(entry => {
+                            const ids = Array.isArray(entry.optionIds) ? entry.optionIds : [];
+                            const knownIds = this.groups.flatMap(g => g.options.map(o => o.id));
+                            if (ids.some(id => !knownIds.includes(id)) || ids.length !== new Set(ids).size) return;
+                            this.groups.forEach(g => {
+                                this.selected[g.id] = g.options.filter(o => ids.includes(o.id)).map(o => o.id);
+                            });
+                            if (!this.firstError()) {
+                                this.quantity = Math.max(0, Math.min(99, parseInt(entry.quantity) || 0));
+                                this.syncCart();
+                            }
+                        });
+                    }
                     // Pre-tick the first option of single-select required groups
                     // to keep the UI usable from the start.
                     this.groups.forEach(g => {
@@ -1324,6 +1388,8 @@
                             this.selected[g.id] = [];
                         }
                     });
+                    this.quantity = window.__menuCart[cartKeyFor(this.id, this.allSelectedIds)]?.quantity || 0;
+                    refreshOrderSummaryBar();
                 },
 
                 get allSelectedIds() {
@@ -1396,6 +1462,9 @@
                     if (group.required && chosen < 1) {
                         return translations.requiredGroupMissing.replace(':g', group.name);
                     }
+                    if (group.type === 'SINGLE' && chosen > 1) {
+                        return translations.maxSelections.replace(':n', 1);
+                    }
                     if (group.type === 'MULTIPLE') {
                         if (group.min > 0 && chosen < group.min) {
                             return translations.minSelections.replace(':n', group.min);
@@ -1430,6 +1499,10 @@
 
                 setQuantity(value) {
                     const n = Math.max(0, Math.min(99, parseInt(value) || 0));
+                    if (n > 0 && this.firstError()) {
+                        alert(this.firstError());
+                        return;
+                    }
                     this.quantity = n;
                     this.syncCart();
                 },
@@ -1457,6 +1530,7 @@
 
                         window.__menuCart[key] = {
                             itemId: this.id,
+                            optionIds: currentIds,
                             name: this.name,
                             basePrice: this.basePrice,
                             unitPrice: unit,
@@ -1469,6 +1543,7 @@
                     }
 
                     refreshOrderSummaryBar();
+                    persistCart();
                 },
             };
         };
@@ -1484,13 +1559,13 @@
             Object.values(cart).forEach(item => {
                 const optsText = item.options.length
                     ? '<div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 0.25rem;">'
-                        + item.options.map(o => `• ${o.group}: ${o.name}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${translations.currencySymbol}${Math.abs(o.delta).toFixed(2)})` : ''}`).join('<br>')
+                        + item.options.map(o => `• ${escapeHtml(o.group)}: ${escapeHtml(o.name)}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${escapeHtml(translations.currencySymbol)}${Math.abs(o.delta).toFixed(2)})` : ''}`).join('<br>')
                         + '</div>'
                     : '';
                 html += `
                     <div class="order-item">
                         <div>
-                            <div style="font-weight:600; color: var(--color-text-primary);">${item.name}</div>
+                            <div style="font-weight:600; color: var(--color-text-primary);">${escapeHtml(item.name)}</div>
                             <div style="color: var(--color-text-muted); font-size:0.875rem;">${translations.currencySymbol}${item.unitPrice.toFixed(2)} x ${item.quantity}</div>
                             ${optsText}
                         </div>
@@ -1521,6 +1596,7 @@
         }
 
         function sendWhatsAppOrder() {
+            if (!whatsappNumber || !Object.keys(window.__menuCart).length) return;
             const notes = document.getElementById('orderNotes').value;
             const location = document.getElementById('orderLocation').value;
             if (!location.trim()) {
@@ -1553,13 +1629,12 @@
             // Clear cart + reset quantity inputs.
             Object.keys(window.__menuCart).forEach(k => delete window.__menuCart[k]);
             document.querySelectorAll('.quantity-input').forEach(inp => { inp.value = 0; });
-            document.querySelectorAll('.menu-item-card').forEach(card => {
-                if (card.__x) { card.__x.$data.quantity = 0; }
-            });
+            window.dispatchEvent(new CustomEvent('menu-cart-cleared'));
+            persistCart();
             refreshOrderSummaryBar();
         }
 
-        document.getElementById('orderModal').addEventListener('click', function(e) {
+        document.getElementById('orderModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeOrderModal();
             }
@@ -1605,42 +1680,34 @@
             window.location.href = url.toString();
         });
 
-        // Set initial language from cookie, query param, or default
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const queryLang = urlParams.get('lang');
-
-            const cookies = document.cookie.split(';');
-            let appLocale = 'en';
-
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'app_locale') {
-                    appLocale = value;
-                    break;
-                }
-            }
-
-            // Override with query param if present
-            if (queryLang && ['en', 'ar'].includes(queryLang)) {
-                appLocale = queryLang;
-            }
-
-            // Update the select element
-            const select = document.getElementById('language-select');
-            if (select) {
-                select.value = appLocale;
-            }
-        });
-
     </script>
-    @endif
+    <script>
+        const welcomeVideo = document.getElementById('welcomeVideo');
+        const dismissWelcome = () => {
+            welcomeVideo?.pause();
+            const scene = document.getElementById('welcomeScene');
+            if (scene) scene.hidden = true;
+            document.getElementById('menuContent')?.focus({ preventScroll: true });
+        };
+        document.getElementById('skipWelcome')?.addEventListener('click', dismissWelcome);
+        document.getElementById('enterMenu')?.addEventListener('click', dismissWelcome);
+        if (welcomeVideo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+            const videoObserver = new IntersectionObserver(entries => {
+                if (entries.some(entry => entry.isIntersecting)) {
+                    welcomeVideo.play().catch(() => {});
+                    videoObserver.disconnect();
+                }
+            }, { threshold: .5 });
+            videoObserver.observe(welcomeVideo);
+        }
+    </script>
     <!-- Search and Filter Functionality -->
     <script>
         document.getElementById('menuSearch').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();
     const menuItems = document.querySelectorAll('.menu-item-card');
     const categories = document.querySelectorAll('[data-category-section]');
+    document.querySelectorAll('.category-pill').forEach(pill => pill.classList.toggle('active', pill.dataset.category === 'all'));
 
     if (searchTerm === '') {
         // Show all items and categories when search is cleared
@@ -1673,6 +1740,7 @@
         function filterByCategory(categoryId) {
             const menuSections = document.querySelectorAll('[data-category-section]');
             const pills = document.querySelectorAll('.category-pill');
+            document.querySelectorAll('.menu-item-card').forEach(item => item.style.display = 'block');
 
             // Update active pill
             pills.forEach(pill => pill.classList.remove('active'));
@@ -1706,7 +1774,7 @@
 
             // Update active pill
             pills.forEach(pill => pill.classList.remove('active'));
-            document.querySelector('[data-category="all"]').classList.add('active');
+            document.querySelector('[data-category="all"]')?.classList.add('active');
 
             // Clear search
             document.getElementById('menuSearch').value = '';

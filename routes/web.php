@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/menu-item/{item}', [RestaurantController::class, 'updateItem'])->name('item.update');
     Route::delete('/menu-item/{item}', [RestaurantController::class, 'deleteItem'])->name('item.delete');
     Route::delete('/category/{category}', [RestaurantController::class, 'deleteCategory'])->name('category.delete');
+    Route::put('/category/{category}', [RestaurantController::class, 'updateCategory'])->name('category.update');
     Route::post('/categories/reorder', [RestaurantController::class, 'reorderCategories'])->name('categories.reorder');
     Route::post('/category/{category}/items/reorder', [RestaurantController::class, 'reorderItems'])->name('items.reorder');
     Route::post('/restaurant/whatsapp/toggle', [RestaurantController::class, 'toggleWhatsApp'])->name('restaurant.whatsapp.toggle');
@@ -51,7 +52,7 @@ Route::middleware('admin')->group(function () {
 });
 
 // Admin routes
-Route::middleware('admin')->prefix('admin')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', function () {
         return redirect()->route('dashboard');
     })->name('admin.index');
@@ -60,11 +61,13 @@ Route::middleware('admin')->prefix('admin')->group(function () {
     Route::get('/restaurant/{restaurant}/edit', [AdminController::class, 'editRestaurant'])->name('admin.restaurant.edit');
     Route::put('/restaurant/{restaurant}', [AdminController::class, 'updateRestaurant'])->name('admin.restaurant.update');
     Route::post('/restaurant/{restaurant}/toggle', [AdminController::class, 'toggleRestaurant'])->name('admin.restaurant.toggle');
+    Route::put('/restaurant/{restaurant}/notes', [AdminController::class, 'updateRestaurantNotes'])->name('admin.restaurant.notes');
     Route::delete('/restaurant/{restaurant}', [AdminController::class, 'deleteRestaurant'])->name('admin.restaurant.delete');
 
     // User management routes
     Route::get('/user/{user}/edit', [AdminController::class, 'editUser'])->name('admin.user.edit');
     Route::put('/user/{user}', [AdminController::class, 'updateUser'])->name('admin.user.update');
+    Route::delete('/user/{user}', [AdminController::class, 'destroyUser'])->name('admin.user.destroy');
 
     // Subscription management routes
     Route::get('/subscription/{subscription}/edit', [AdminController::class, 'editSubscription'])->name('admin.subscription.edit');

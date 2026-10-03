@@ -15,7 +15,9 @@ class MenuItem extends Model
 
     protected $fillable = [
         'name',
+        'name_en',
         'description',
+        'description_en',
         'price',
         'image',
         'menu_category_id',
@@ -25,7 +27,18 @@ class MenuItem extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
+
+    public function nameFor(?string $locale = null): string
+    {
+        return (string) (($locale ?? app()->getLocale()) === 'en' && filled($this->name_en) ? $this->name_en : $this->name);
+    }
+
+    public function descriptionFor(?string $locale = null): ?string
+    {
+        return ($locale ?? app()->getLocale()) === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
 
     public function menuCategory(): BelongsTo
     {

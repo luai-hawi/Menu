@@ -2,22 +2,21 @@
 
 > Status: **shipped**
 > Scope: menu items now support any number of **option groups** (`SINGLE`
-> or `MULTIPLE`), each containing one or more **options** with Arabic
+> or `MULTIPLE`), each containing one or more **options** with Arabic and English
 > labels, price deltas, optional notes, and explicit display ordering.
 > The public menu computes the total price live as the customer toggles
 > options; the restaurant owner dashboard provides a nested, drag-and-drop
 > editor.
 
-> ## 2026-04-16 Update — Arabic-only simplification
+> ## 2026-10-03 Update — bilingual content restored
 >
-> The English-only fields were dropped from the schema and the admin UI.
-> Each group & option now stores a single `*_ar` label that is rendered
-> everywhere. The rest of the document still references `*_en` fields
-> (original design); those fields no longer exist in the code:
-> - migration `2026_04_16_210000_drop_english_columns_from_option_groups_and_options.php` removes them
-> - `MenuItemOptionGroup::nameFor()` / `MenuItemOption::nameFor()` / `noteFor()` always return Arabic
-> - the editor partial renders a single Arabic input per group / option
-> - `MenuItemRequest` only validates `*_ar` keys
+> Optional English group names, option names, and option notes are restored
+> by a new additive migration. Existing Arabic fields and content are preserved.
+> The owner editor accepts both languages. `nameFor()` and `noteFor()` select
+> the customer's language, falling back to Arabic when English is missing.
+> The public menu, search, option picker, cart, and WhatsApp order use the
+> selected language. Historic migrations are unchanged; previously dropped
+> translations cannot be recovered automatically.
 >
 > ## 2026-04-16 Update — AJAX-first save flow
 >
@@ -101,7 +100,7 @@ the dashboard submits standard form arrays).
 
 | Method | URL | Controller | Purpose |
 |---|---|---|---|
-| `GET`  | `/dashboard` | `RestaurantController@dashboard` | lists items + their option groups (eager-loaded) |
+| `GET`  | `/dashboard` | `DashboardController@index` | lists items + their option groups (eager-loaded) |
 | `POST` | `/menu-item` | `RestaurantController@storeItem` | create item + nested option groups |
 | `PUT`  | `/menu-item/{item}` | `RestaurantController@updateItem` | update item + upsert / reorder / remove groups & options |
 | `DELETE` | `/menu-item/{item}` | `RestaurantController@deleteItem` | cascade deletes groups + options |

@@ -8,17 +8,19 @@ use App\Models\MenuItem;
 use App\Models\MenuItemOptionGroup;
 use App\Models\Restaurant;
 use App\Services\ImageService;
+use App\Services\VideoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RestaurantController extends Controller
 {
     protected $imageService;
 
-    public function __construct(ImageService $imageService)
+    public function __construct(ImageService $imageService, protected VideoService $videoService)
     {
         $this->imageService = $imageService;
     }
@@ -72,7 +74,7 @@ class RestaurantController extends Controller
         if (! $user) {
             return null;
         }
-        $restaurants = $user->restaurants;
+        $restaurants = $user->restaurants()->get();
 
         if ($restaurants->isEmpty()) {
             return null;
@@ -87,7 +89,7 @@ class RestaurantController extends Controller
     public function dashboard(Request $request)
     {
         $user = auth()->user();
-        $restaurants = $user->restaurants;
+        $restaurants = $user->restaurants()->get();
 
         if ($restaurants->isEmpty()) {
             return redirect()->route('restaurant.create');
@@ -105,7 +107,9 @@ class RestaurantController extends Controller
             ->with(['menuItems.optionGroups.options'])
             ->get();
 
-        return view('restaurant.dashboard', compact('restaurant', 'categories', 'restaurants'));
+        $videoAvailable = $this->videoService->available();
+
+        return view('restaurant.dashboard', compact('restaurant', 'categories', 'restaurants', 'videoAvailable'));
     }
 
     public function create()
@@ -132,21 +136,23 @@ class RestaurantController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'name_en' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'description_en' => 'nullable|string|max:1000',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        $slug = Str::slug($request->name);
+        $slug = Str::slug($request->input('name_en') ?: $request->name) ?: 'restaurant';
         $counter = 1;
         $originalSlug = $slug;
         while (Restaurant::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $counter;
+            $slug = $originalSlug.'-'.$counter;
             $counter++;
         }
 
-        $restaurant = new Restaurant($request->all());
+        $restaurant = new Restaurant(collect($validated)->except('logo')->all());
         $restaurant->slug = $slug;
         $restaurant->user_id = auth()->id();
 
@@ -159,7 +165,14 @@ class RestaurantController extends Controller
             );
         }
 
-        $restaurant->save();
+        try {
+            $restaurant->save();
+        } catch (\Throwable $exception) {
+            if ($restaurant->logo) {
+                Storage::disk('public')->delete($restaurant->logo);
+            }
+            throw $exception;
+        }
 
         return $this->ok($request, __('messages.products.flash_saved'));
     }
@@ -172,6 +185,8 @@ class RestaurantController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'is_active' => 'sometimes|boolean',
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
@@ -181,30 +196,56 @@ class RestaurantController extends Controller
 
         $category = MenuCategory::create([
             'name' => $request->name,
+            'name_en' => $request->input('name_en'),
             'restaurant_id' => $restaurant->id,
             'sort_order' => MenuCategory::where('restaurant_id', $restaurant->id)->max('sort_order') + 1,
-            'is_active' => true,
+            'is_active' => $request->boolean('is_active', true),
         ]);
 
         return $this->ok($request, __('messages.products.flash_category_created'), [
             'category' => [
                 'id' => $category->id,
                 'name' => $category->name,
+                'name_en' => $category->name_en,
+                'is_active' => $category->is_active,
             ],
         ]);
     }
 
     public function deleteCategory(Request $request, MenuCategory $category)
     {
-        foreach ($category->menuItems as $item) {
-            if ($item->image) {
-                $this->imageService->deleteImage($item->image);
-            }
+        if (! $this->ownsCategory($category)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
         }
 
+        $images = $category->menuItems()->pluck('image')->filter();
         $category->delete();
+        foreach ($images as $image) {
+            $this->imageService->deleteImage($image);
+        }
 
         return $this->ok($request, __('messages.products.flash_category_deleted'));
+    }
+
+    public function updateCategory(Request $request, MenuCategory $category)
+    {
+        if (! $this->ownsCategory($category)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
+        }
+        $category->update($request->validate([
+            'name' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'is_active' => 'sometimes|boolean',
+        ]));
+
+        return $this->ok($request, __('messages.products.flash_saved'));
+    }
+
+    protected function ownsCategory(MenuCategory $category): bool
+    {
+        $restaurant = $this->getSelectedRestaurant();
+
+        return $restaurant && (int) $category->restaurant_id === (int) $restaurant->id;
     }
 
     /* =================================================================
@@ -213,6 +254,10 @@ class RestaurantController extends Controller
 
     public function storeItem(MenuItemRequest $request)
     {
+        $category = MenuCategory::findOrFail($request->input('category_id'));
+        if (! $this->ownsCategory($category)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
+        }
         $imagePath = null;
         if ($request->hasFile('image')) {
             $imagePath = $this->imageService->uploadAndCompressImage(
@@ -223,22 +268,31 @@ class RestaurantController extends Controller
             );
         }
 
-        $item = DB::transaction(function () use ($request, $imagePath) {
-            $item = MenuItem::create([
-                'name' => $request->input('name'),
-                'description' => $request->input('description'),
-                'price' => $request->input('price'),
-                'image' => $imagePath,
-                'menu_category_id' => $request->input('category_id'),
-                'sort_order' => (int) MenuItem::where('menu_category_id', $request->input('category_id'))
-                    ->max('sort_order') + 1,
-                'is_active' => true,
-            ]);
+        try {
+            $item = DB::transaction(function () use ($request, $imagePath) {
+                $item = MenuItem::create([
+                    'name' => $request->input('name'),
+                    'name_en' => $request->input('name_en'),
+                    'description' => $request->input('description'),
+                    'description_en' => $request->input('description_en'),
+                    'price' => $request->input('price'),
+                    'image' => $imagePath,
+                    'menu_category_id' => $request->input('category_id'),
+                    'sort_order' => (int) MenuItem::where('menu_category_id', $request->input('category_id'))
+                        ->max('sort_order') + 1,
+                    'is_active' => $request->boolean('is_active', true),
+                ]);
 
-            $this->syncOptionGroups($item, (array) $request->input('option_groups', []));
+                $this->syncOptionGroups($item, (array) $request->input('option_groups', []));
 
-            return $item;
-        });
+                return $item;
+            });
+        } catch (\Throwable $exception) {
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            throw $exception;
+        }
 
         return $this->ok($request, __('messages.products.flash_created'), [
             'item_id' => $item->id,
@@ -247,6 +301,9 @@ class RestaurantController extends Controller
 
     public function updateItem(MenuItemRequest $request, MenuItem $item)
     {
+        if (! $this->ownsCategory($item->menuCategory)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
+        }
         $oldImage = $item->image;
         $newImagePath = null;
 
@@ -259,24 +316,34 @@ class RestaurantController extends Controller
             );
         }
 
-        DB::transaction(function () use ($request, $item, $oldImage, $newImagePath) {
-            $item->fill([
-                'name' => $request->input('name'),
-                'description' => $request->input('description'),
-                'price' => $request->input('price'),
-            ]);
+        try {
+            DB::transaction(function () use ($request, $item, $newImagePath) {
+                $item->fill([
+                    'name' => $request->input('name'),
+                    'name_en' => $request->input('name_en', $item->name_en),
+                    'description' => $request->input('description'),
+                    'description_en' => $request->input('description_en', $item->description_en),
+                    'price' => $request->input('price'),
+                    'is_active' => $request->boolean('is_active', $item->is_active),
+                ]);
 
-            if ($newImagePath !== null) {
-                if ($oldImage) {
-                    $this->imageService->deleteImage($oldImage);
+                if ($newImagePath !== null) {
+                    $item->image = $newImagePath;
                 }
-                $item->image = $newImagePath;
+
+                $item->save();
+
+                $this->syncOptionGroups($item, (array) $request->input('option_groups', []));
+            });
+        } catch (\Throwable $exception) {
+            if ($newImagePath) {
+                Storage::disk('public')->delete($newImagePath);
             }
-
-            $item->save();
-
-            $this->syncOptionGroups($item, (array) $request->input('option_groups', []));
-        });
+            throw $exception;
+        }
+        if ($newImagePath && $oldImage) {
+            $this->imageService->deleteImage($oldImage);
+        }
 
         return $this->ok($request, __('messages.products.flash_updated'));
     }
@@ -298,6 +365,7 @@ class RestaurantController extends Controller
                 'menu_item_id' => $item->id,
                 'group_type' => $groupData['group_type'] ?? MenuItemOptionGroup::TYPE_SINGLE,
                 'group_name_ar' => $groupData['group_name_ar'] ?? '',
+                'group_name_en' => $groupData['group_name_en'] ?? null,
                 'min_choices' => (int) ($groupData['min_choices'] ?? 0),
                 'max_choices' => (int) ($groupData['max_choices'] ?? 1),
                 'is_required' => (bool) ($groupData['is_required'] ?? false),
@@ -318,8 +386,10 @@ class RestaurantController extends Controller
                 $optPayload = [
                     'option_group_id' => $group->id,
                     'option_name_ar' => $opt['option_name_ar'] ?? '',
+                    'option_name_en' => $opt['option_name_en'] ?? null,
                     'price_delta' => (float) ($opt['price_delta'] ?? 0),
                     'option_note_ar' => $opt['option_note_ar'] ?? null,
+                    'option_note_en' => $opt['option_note_en'] ?? null,
                     'position' => (int) ($opt['position'] ?? $oIdx),
                     'is_active' => (bool) ($opt['is_active'] ?? true),
                 ];
@@ -340,11 +410,14 @@ class RestaurantController extends Controller
 
     public function deleteItem(Request $request, MenuItem $item)
     {
-        if ($item->image) {
-            $this->imageService->deleteImage($item->image);
+        if (! $this->ownsCategory($item->menuCategory)) {
+            return $this->fail($request, __('messages.errors.unauthorized_restaurant'), 403);
         }
-
+        $image = $item->image;
         $item->delete();
+        if ($image) {
+            $this->imageService->deleteImage($image);
+        }
 
         return $this->ok($request, __('messages.products.flash_deleted'));
     }
@@ -356,8 +429,8 @@ class RestaurantController extends Controller
     public function reorderCategories(Request $request)
     {
         $request->validate([
-            'order'   => 'required|array',
-            'order.*' => 'integer',
+            'order' => 'required|array',
+            'order.*' => 'integer|distinct',
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
@@ -391,8 +464,8 @@ class RestaurantController extends Controller
         }
 
         $request->validate([
-            'order'   => 'required|array',
-            'order.*' => 'integer',
+            'order' => 'required|array',
+            'order.*' => 'integer|distinct',
         ]);
 
         $ids = $request->input('order');
@@ -458,8 +531,10 @@ class RestaurantController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'description_en' => 'nullable|string|max:1000',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048|prohibited_if:remove_logo,1',
             'remove_logo' => 'nullable|in:1',
         ]);
 
@@ -470,13 +545,12 @@ class RestaurantController extends Controller
 
         $updateData = [
             'name' => $request->name,
+            'name_en' => $request->input('name_en', $restaurant->name_en),
             'description' => $request->description,
+            'description_en' => $request->input('description_en', $restaurant->description_en),
         ];
 
         if ($request->hasFile('logo')) {
-            if ($restaurant->logo) {
-                $this->imageService->deleteImage($restaurant->logo);
-            }
             $updateData['logo'] = $this->imageService->uploadAndCompressImage(
                 $request->file('logo'),
                 'logos',
@@ -484,16 +558,13 @@ class RestaurantController extends Controller
                 85
             );
         } elseif ($request->has('remove_logo') && $request->remove_logo == '1') {
-            if ($restaurant->logo) {
-                $this->imageService->deleteImage($restaurant->logo);
-            }
             $updateData['logo'] = null;
         }
 
-        $restaurant->update($updateData);
+        $this->saveWithMedia($restaurant, $updateData);
 
         return $this->ok($request, __('messages.products.flash_saved'), [
-            'logo_url' => $restaurant->logo ? asset('storage/' . $restaurant->logo) : null,
+            'logo_url' => $restaurant->logo ? asset('storage/'.$restaurant->logo) : null,
         ]);
     }
 
@@ -501,56 +572,62 @@ class RestaurantController extends Controller
     {
         $colorRule = 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/';
         $request->validate([
-            'background_image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
-            'remove_background'  => 'nullable|in:1',
-            'facebook_url'       => 'nullable|url',
-            'instagram_url'      => 'nullable|url',
-            'snapchat_url'       => 'nullable|url',
-            'whatsapp_url'       => 'nullable|url',
-            'twitter_url'        => 'nullable|url',
-            'tiktok_url'         => 'nullable|url',
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120|prohibited_if:remove_background,1',
+            'remove_background' => 'nullable|in:1',
+            'welcome_title' => 'nullable|string|max:255',
+            'welcome_title_en' => 'nullable|string|max:255',
+            'welcome_message' => 'nullable|string|max:1000',
+            'welcome_message_en' => 'nullable|string|max:1000',
+            'welcome_video' => 'nullable|file|mimes:mp4,mov,webm|max:10240|prohibited_if:remove_welcome_video,1',
+            'remove_welcome_video' => 'nullable|in:1',
+            'facebook_url' => 'nullable|url',
+            'instagram_url' => 'nullable|url',
+            'snapchat_url' => 'nullable|url',
+            'whatsapp_url' => 'nullable|url',
+            'twitter_url' => 'nullable|url',
+            'tiktok_url' => 'nullable|url',
             // ── New comprehensive color tokens ──
-            'page_bg'             => $colorRule,
-            'page_bg_2'           => $colorRule,
-            'page_bg_3'           => $colorRule,
-            'header_bg_start'     => $colorRule,
-            'header_bg_end'       => $colorRule,
-            'restaurant_name'     => $colorRule,
-            'restaurant_tagline'  => $colorRule,
-            'text_primary'        => $colorRule,
-            'text_secondary'      => $colorRule,
-            'text_muted'          => $colorRule,
-            'text_price'          => $colorRule,
-            'text_option_price'   => $colorRule,
-            'card_bg'             => $colorRule,
-            'card_border'         => $colorRule,
-            'card_border_hover'   => $colorRule,
-            'card_accent_bar'     => $colorRule,
+            'page_bg' => $colorRule,
+            'page_bg_2' => $colorRule,
+            'page_bg_3' => $colorRule,
+            'header_bg_start' => $colorRule,
+            'header_bg_end' => $colorRule,
+            'restaurant_name' => $colorRule,
+            'restaurant_tagline' => $colorRule,
+            'text_primary' => $colorRule,
+            'text_secondary' => $colorRule,
+            'text_muted' => $colorRule,
+            'text_price' => $colorRule,
+            'text_option_price' => $colorRule,
+            'card_bg' => $colorRule,
+            'card_border' => $colorRule,
+            'card_border_hover' => $colorRule,
+            'card_accent_bar' => $colorRule,
             'card_accent_bar_end' => $colorRule,
-            'btn_primary'         => $colorRule,
-            'btn_primary_end'     => $colorRule,
-            'btn_qty'             => $colorRule,
-            'btn_qty_end'         => $colorRule,
-            'btn_order'           => $colorRule,
-            'btn_order_end'       => $colorRule,
-            'pill_bg'             => $colorRule,
-            'pill_border'         => $colorRule,
-            'pill_text'           => $colorRule,
-            'pill_active'         => $colorRule,
-            'pill_active_end'     => $colorRule,
-            'pill_active_text'    => $colorRule,
-            'option_group_bg'     => $colorRule,
-            'option_selected_bg'  => $colorRule,
+            'btn_primary' => $colorRule,
+            'btn_primary_end' => $colorRule,
+            'btn_qty' => $colorRule,
+            'btn_qty_end' => $colorRule,
+            'btn_order' => $colorRule,
+            'btn_order_end' => $colorRule,
+            'pill_bg' => $colorRule,
+            'pill_border' => $colorRule,
+            'pill_text' => $colorRule,
+            'pill_active' => $colorRule,
+            'pill_active_end' => $colorRule,
+            'pill_active_text' => $colorRule,
+            'option_group_bg' => $colorRule,
+            'option_selected_bg' => $colorRule,
             'option_input_accent' => $colorRule,
-            'input_bg'            => $colorRule,
-            'input_border'        => $colorRule,
-            'input_focus'         => $colorRule,
-            'input_text'          => $colorRule,
-            'footer_bg'           => $colorRule,
-            'footer_text'         => $colorRule,
-            'footer_heading'      => $colorRule,
-            'border'              => $colorRule,
-            'border_secondary'    => $colorRule,
+            'input_bg' => $colorRule,
+            'input_border' => $colorRule,
+            'input_focus' => $colorRule,
+            'input_text' => $colorRule,
+            'footer_bg' => $colorRule,
+            'footer_text' => $colorRule,
+            'footer_heading' => $colorRule,
+            'border' => $colorRule,
+            'border_secondary' => $colorRule,
         ]);
 
         $restaurant = $this->getSelectedRestaurant();
@@ -614,36 +691,66 @@ class RestaurantController extends Controller
         $mergedColors = array_merge($existingColors, $newColors);
 
         $updateData = [
-            'facebook_url'  => $request->facebook_url  ?? $restaurant->facebook_url,
-            'instagram_url' => $request->instagram_url ?? $restaurant->instagram_url,
-            'snapchat_url'  => $request->snapchat_url  ?? $restaurant->snapchat_url,
-            'whatsapp_url'  => $request->whatsapp_url  ?? $restaurant->whatsapp_url,
-            'twitter_url'   => $request->twitter_url   ?? $restaurant->twitter_url,
-            'tiktok_url'    => $request->tiktok_url    ?? $restaurant->tiktok_url,
-            'theme_colors'  => $mergedColors,
+            'theme_colors' => $mergedColors,
         ];
+        foreach (['facebook_url', 'instagram_url', 'snapchat_url', 'whatsapp_url', 'twitter_url', 'tiktok_url',
+            'welcome_title', 'welcome_title_en', 'welcome_message', 'welcome_message_en'] as $field) {
+            if ($request->exists($field)) {
+                $updateData[$field] = $request->input($field);
+            }
+        }
 
+        // Validate/process video before images so a rejected video cannot orphan an image.
+        if ($request->hasFile('welcome_video')) {
+            $updateData['welcome_video'] = $this->videoService->uploadAndCompressVideo($request->file('welcome_video'));
+        } elseif ($request->boolean('remove_welcome_video')) {
+            $updateData['welcome_video'] = null;
+        }
         if ($request->hasFile('background_image')) {
-            if ($restaurant->background_image) {
-                $this->imageService->deleteImage($restaurant->background_image);
+            try {
+                $updateData['background_image'] = $this->imageService->uploadAndCompressImage(
+                    $request->file('background_image'), 'backgrounds', 1920, 80
+                );
+            } catch (\Throwable $exception) {
+                if (! empty($updateData['welcome_video'])) {
+                    Storage::disk('public')->delete($updateData['welcome_video']);
+                }
+                throw $exception;
             }
-            $updateData['background_image'] = $this->imageService->uploadAndCompressImage(
-                $request->file('background_image'),
-                'backgrounds',
-                1920,
-                80
-            );
         } elseif ($request->has('remove_background') && $request->remove_background == '1') {
-            if ($restaurant->background_image) {
-                $this->imageService->deleteImage($restaurant->background_image);
-            }
             $updateData['background_image'] = null;
         }
 
-        $restaurant->update($updateData);
+        $this->saveWithMedia($restaurant, $updateData);
 
         return $this->ok($request, __('messages.products.flash_saved'), [
-            'background_url' => $restaurant->background_image ? asset('storage/' . $restaurant->background_image) : null,
+            'background_url' => $restaurant->background_image ? asset('storage/'.$restaurant->background_image) : null,
+            'welcome_video_url' => $restaurant->welcome_video ? asset('storage/'.$restaurant->welcome_video) : null,
         ]);
+    }
+
+    protected function saveWithMedia(Restaurant $restaurant, array $data): void
+    {
+        $old = [];
+        foreach (['logo', 'background_image', 'welcome_video'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== $restaurant->$field) {
+                $old[$field] = $restaurant->$field;
+            }
+        }
+        try {
+            DB::transaction(fn () => $restaurant->update($data));
+        } catch (\Throwable $exception) {
+            foreach ($old as $field => $path) {
+                if (! empty($data[$field])) {
+                    Storage::disk('public')->delete($data[$field]);
+                }
+            }
+            throw $exception;
+        }
+        foreach ($old as $path) {
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+        }
     }
 }

@@ -1,312 +1,274 @@
 <?php
-// app/Http/Controllers/AdminController.php
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Admin\DeleteRestaurantRequest;
+use App\Http\Requests\Admin\DeleteUnusedAccountRequest;
+use App\Http\Requests\Admin\StoreRestaurantRequest;
+use App\Http\Requests\Admin\UpdateRestaurantNotesRequest;
+use App\Http\Requests\Admin\UpdateRestaurantRequest;
+use App\Http\Requests\Admin\UpdateSubscriptionRequest;
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\Restaurant;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\ImageService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
+use App\Services\Admin\AccountCleanupService;
+use App\Services\Admin\AdminActionException;
+use App\Services\Admin\RestaurantProvisioningService;
+use App\Services\Admin\SubscriptionState;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Exception;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class AdminController extends Controller
 {
-    protected $imageService;
-
-    public function __construct(ImageService $imageService)
-    {
-        $this->imageService = $imageService;
-    }
-
-    public function index()
-    {
-        $restaurants = Restaurant::with(['user', 'user.subscriptions'])->latest()->get();
-
-        // Get users who are either restaurant owners by role OR have restaurants
-        $users = User::where(function ($query) {
-            $query->where('role', 'restaurant_owner')
-                ->orWhereHas('restaurants');
-        })->withCount('restaurants')->get();
-
-        // Get unpaid or expired subscriptions
-        $unpaidSubscriptions = Subscription::where(function ($query) {
-            $query->whereNull('paid_at')->orWhere('expires_at', '<', now());
-        })->with('user')->get();
-
-        return view('admin.index', compact('restaurants', 'users', 'unpaidSubscriptions'));
+    public function __construct(
+        private readonly RestaurantProvisioningService $provisioning,
+        private readonly AccountCleanupService $cleanup,
+    ) {
     }
 
     public function createRestaurant()
     {
-        // Get users who are either restaurant owners by role OR have restaurants
-        $owners = User::where(function ($query) {
-            $query->where('role', 'restaurant_owner')
-                ->orWhereHas('restaurants');
-        })->withCount('restaurants')->get();
+        $owners = User::query()
+            ->where('role', '!=', 'admin')
+            ->where(fn ($q) => $q->where('role', 'restaurant_owner')->orWhereHas('restaurants'))
+            ->withCount('restaurants')
+            ->orderBy('name')
+            ->get();
 
         return view('admin.create-restaurant', compact('owners'));
     }
 
-    public function storeRestaurant(Request $request)
+    public function storeRestaurant(StoreRestaurantRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:restaurants',
-            'description' => 'nullable|string',
-            'owner_method' => 'required|in:existing,new',
-            'owner_email' => 'required_if:owner_method,new|nullable|email',
-            'user_id' => 'required_if:owner_method,existing|nullable|exists:users,id',
-            'password' => 'required_if:owner_method,new|nullable|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-            'logo' => 'nullable|image|max:2048',
-            'subscription_amount' => 'nullable|numeric|min:0'
-        ]);
+        try {
+            $result = $this->provisioning->create($request->validated(), $request->file('logo'));
+        } catch (AdminActionException $e) {
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['owner' => $e->getMessage()]);
+        } catch (UniqueConstraintViolationException $e) {
+            // Lost a race with another request between validation and insert.
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['slug' => __('admin.validation.create_conflict')]);
+        } catch (Throwable $e) {
+            Log::error('Admin restaurant creation failed.', ['exception' => $e]);
 
-        $userId = null;
-        $message = '';
-
-        if ($request->owner_method === 'existing') {
-            // Use existing user
-            $user = User::find($request->user_id);
-            $userId = $user->id;
-            $message = __('messages.restaurant_created_existing_owner', ['name' => $request->name, 'email' => $user->email]);
-        } else {
-            // Create new user or use existing one with the email
-            $existingUser = User::whereRaw('LOWER(email) = ?', [strtolower($request->owner_email)])->first();
-
-            if ($existingUser) {
-                // User exists, use their ID
-                $userId = $existingUser->id;
-                $message = __('messages.restaurant_created_existing_user', ['name' => $request->name, 'email' => $request->owner_email]);
-            } else {
-                // Create new user with provided password
-                $user = User::create([
-                    'name' => explode('@', $request->owner_email)[0], // Use email prefix as name initially
-                    'email' => $request->owner_email,
-                    'phone' => $request->phone,
-                    'password' => Hash::make($request->password),
-                    'role' => 'restaurant_owner',
-                    'email_verified_at' => now(),
-                ]);
-                $userId = $user->id;
-                $message = __('messages.restaurant_created_new_user', ['name' => $request->name, 'email' => $request->owner_email]);
-            }
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->with('error', __('admin.errors.create_failed'));
         }
 
-        // Create subscription if not exists
-        \App\Models\Subscription::firstOrCreate(
-            ['user_id' => $userId],
-            ['amount' => $request->subscription_amount ?: 100.00]
-        );
+        $key = $result['owner_created'] ? 'admin.flash.restaurant_created_new_owner' : 'admin.flash.restaurant_created';
 
-        $restaurant = new Restaurant([
-            'name' => $request->name,
-            'slug' => $request->slug,
-            'description' => $request->description,
-            'user_id' => $userId,
-        ]);
-
-        if ($request->hasFile('logo')) {
-            $restaurant->logo = $request->file('logo')->store('logos', 'public');
-        }
-
-        $restaurant->save();
-
-        return redirect()->route('admin.index')->with('success', $message);
+        return redirect()->route('dashboard')->with('success', __($key, [
+            'name' => $result['restaurant']->name,
+            'email' => $result['owner']->email,
+        ]));
     }
 
     public function editRestaurant(Restaurant $restaurant)
     {
+        $restaurant->load('user');
+
         return view('admin.edit-restaurant', compact('restaurant'));
     }
 
-    public function updateRestaurant(Request $request, Restaurant $restaurant)
+    public function updateRestaurant(UpdateRestaurantRequest $request, Restaurant $restaurant): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:restaurants,slug,' . $restaurant->id,
-            'description' => 'nullable|string',
-        ], [
-            'slug.unique' => __('messages.slug_already_taken'),
+        $data = $request->validated();
+
+        $restaurant->fill([
+            'name' => $data['name'],
+            'slug' => $data['slug'],
+            'description' => $data['description'] ?? null,
         ]);
-
-        $restaurant->update([
-            'name' => $request->name,
-            'slug' => $request->slug,
-            'description' => $request->description,
-        ]);
-
-        return redirect()->route('admin.index')->with('success', 'Restaurant updated successfully.');
-    }
-
-    public function toggleRestaurant(Restaurant $restaurant)
-    {
-        $restaurant->is_active = !$restaurant->is_active;
-        $restaurant->save();
-
-        $status = $restaurant->is_active ? 'activated' : 'deactivated';
-        return redirect()->route('admin.index')->with('success', "Restaurant '{$restaurant->name}' has been {$status}.");
-    }
-
-    public function deleteRestaurant(Request $request, Restaurant $restaurant)
-    {
-        // Require the admin to confirm by typing the restaurant name
-        if ($request->input('confirm_name') !== $restaurant->name) {
-            return redirect()->route('admin.index')
-                ->with('error', __('messages.delete_confirmation_mismatch'));
-        }
-
-        DB::beginTransaction();
+        $restaurant->admin_notes = $data['admin_notes'] ?? null;
 
         try {
-            $restaurantName = $restaurant->name;
-
-            // Delete restaurant logo if exists
-            if ($restaurant->logo) {
-                $this->deleteImageSafely($restaurant->logo);
-            }
-
-            // Delete restaurant background image if exists
-            if ($restaurant->background_image) {
-                $this->deleteImageSafely($restaurant->background_image);
-            }
-
-            // Get all menu categories with their items and delete item images
-            $categories = $restaurant->menuCategories()->with('menuItems')->get();
-            foreach ($categories as $category) {
-                foreach ($category->menuItems as $item) {
-                    if ($item->image) {
-                        $this->deleteImageSafely($item->image);
-                    }
-                }
-            }
-
-            // Delete the restaurant — DB cascades handle categories, items, option groups, options
-            $restaurant->delete();
-
-            DB::commit();
-
-            return redirect()->route('admin.index')->with('success', "Restaurant '{$restaurantName}' and all associated data have been permanently deleted.");
-        } catch (Exception $e) {
-            DB::rollback();
-
-            \Log::error('Failed to delete restaurant: ' . $e->getMessage(), [
-                'restaurant_id' => $restaurant->id,
-                'restaurant_name' => $restaurant->name,
-                'error' => $e->getTraceAsString()
-            ]);
-
-            return redirect()->route('admin.index')->with('error', 'Failed to delete restaurant. Please check the logs for more details.');
+            $restaurant->save();
+        } catch (UniqueConstraintViolationException $e) {
+            return back()->withInput()->withErrors(['slug' => __('admin.validation.create_conflict')]);
         }
+
+        return redirect()->route('dashboard')->with('success', __('admin.flash.restaurant_updated', ['name' => $restaurant->name]));
+    }
+
+    public function updateRestaurantNotes(UpdateRestaurantNotesRequest $request, Restaurant $restaurant): RedirectResponse
+    {
+        $restaurant->admin_notes = $request->validated('admin_notes');
+        $restaurant->save();
+
+        return $this->backToDashboard()->with('success', __('admin.flash.notes_saved', ['name' => $restaurant->name]));
+    }
+
+    public function toggleRestaurant(Restaurant $restaurant): RedirectResponse
+    {
+        $restaurant->is_active = ! $restaurant->is_active;
+        $restaurant->save();
+
+        return $this->backToDashboard()->with('success', __(
+            $restaurant->is_active ? 'admin.flash.restaurant_activated' : 'admin.flash.restaurant_deactivated',
+            ['name' => $restaurant->name]
+        ));
+    }
+
+    public function deleteRestaurant(DeleteRestaurantRequest $request, Restaurant $restaurant): RedirectResponse
+    {
+        $name = $restaurant->name;
+        $ownerEmail = $restaurant->user?->email;
+
+        try {
+            $result = $this->cleanup->deleteRestaurant($restaurant, $request->wantsOwnerDeleted(), $request->user());
+        } catch (Throwable $e) {
+            Log::error('Admin restaurant deletion failed.', ['restaurant_id' => $restaurant->id, 'exception' => $e]);
+
+            return $this->backToDashboard()->with('error', __('admin.errors.delete_failed', ['name' => $name]));
+        }
+
+        $messages = [__('admin.flash.restaurant_deleted', ['name' => $name])];
+
+        if ($result['owner_deleted']) {
+            $messages[] = __('admin.flash.owner_deleted', ['email' => $ownerEmail]);
+        } elseif ($request->wantsOwnerDeleted() && $result['owner_status'] !== AccountCleanupService::OWNER_DELETABLE) {
+            $messages[] = __('admin.delete_restaurant.owner_kept.'.$result['owner_status'], ['email' => $ownerEmail]);
+        }
+
+        $redirect = $this->backToDashboard()->with('success', implode(' ', $messages));
+
+        if ($result['media_failures'] !== []) {
+            $redirect->with('error', __('admin.errors.media_cleanup_failed', [
+                'count' => count($result['media_failures']),
+                'paths' => implode(', ', $result['media_failures']),
+            ]));
+        }
+
+        return $redirect;
+    }
+
+    public function destroyUser(DeleteUnusedAccountRequest $request, User $user): RedirectResponse
+    {
+        try {
+            $this->cleanup->deleteUnusedAccount($user, $request->user());
+        } catch (AdminActionException $e) {
+            return $this->backToDashboard()->with('error', $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('Admin account deletion failed.', ['user_id' => $user->id, 'exception' => $e]);
+
+            return $this->backToDashboard()->with('error', __('admin.errors.account_delete_failed'));
+        }
+
+        return $this->backToDashboard()->with('success', __('admin.flash.account_deleted', ['email' => $user->email]));
     }
 
     public function editSubscription(Subscription $subscription)
     {
+        $subscription->load('user');
+
         return view('admin.edit-subscription', compact('subscription'));
     }
 
-    public function updateSubscription(Request $request, Subscription $subscription)
+    public function updateSubscription(UpdateSubscriptionRequest $request, Subscription $subscription): RedirectResponse
     {
-        $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'next_payment_date' => 'nullable|date',
-        ]);
+        $data = $request->validated();
 
-        $subscription->update([
-            'amount' => $request->amount,
-            'expires_at' => $request->filled('next_payment_date')
-                ? \Carbon\Carbon::parse($request->next_payment_date)
-                : $subscription->expires_at,
-        ]);
-
-        return redirect()->route('admin.index')->with('success', 'Subscription updated successfully.');
-    }
-
-    public function markPaid(Subscription $subscription)
-    {
-        $base = $subscription->expires_at && $subscription->expires_at->isFuture()
-            ? $subscription->expires_at
-            : now();
-
-        $subscription->paid_at = now();
-        $subscription->expires_at = $base->addYear();
+        $subscription->amount = $data['amount'];
+        $subscription->expires_at = filled($data['next_payment_date'] ?? null)
+            ? Carbon::parse($data['next_payment_date'])->startOfDay()
+            : null;
         $subscription->save();
 
-        return redirect()->back()->with('success', 'Subscription marked as paid.');
+        return redirect()->route('dashboard')->with('success', __('admin.flash.subscription_updated'));
     }
 
-    /**
-     * Safely delete an image, handling both ImageService and direct Storage deletion
-     */
-    private function deleteImageSafely($imagePath)
+    public function markPaid(Subscription $subscription): RedirectResponse
     {
-        try {
-            // Try using ImageService first if it exists
-            if ($this->imageService && method_exists($this->imageService, 'deleteImage')) {
-                $this->imageService->deleteImage($imagePath);
-            } else {
-                // Fallback to direct Storage deletion
-                if (Storage::disk('public')->exists($imagePath)) {
-                    Storage::disk('public')->delete($imagePath);
-                }
+        $updated = DB::transaction(function () use ($subscription) {
+            $subscription = Subscription::query()->lockForUpdate()->findOrFail($subscription->id);
+
+            // Guards against double submits extending the paid period twice.
+            if (! SubscriptionState::isDue($subscription)) {
+                return null;
             }
-        } catch (Exception $e) {
-            // Log the error but don't fail the whole operation
-            \Log::warning('Failed to delete image: ' . $imagePath . ' - ' . $e->getMessage());
+
+            $base = $subscription->expires_at && $subscription->expires_at->isFuture()
+                ? $subscription->expires_at->copy()
+                : now()->startOfDay();
+
+            $subscription->paid_at = now();
+            $subscription->expires_at = $base->addYear();
+            $subscription->save();
+
+            return $subscription;
+        });
+
+        if (! $updated) {
+            return $this->backToDashboard()->with('error', __('admin.errors.subscription_not_due'));
         }
+
+        return $this->backToDashboard()->with('success', __('admin.flash.subscription_paid', [
+            'date' => $updated->expires_at->translatedFormat('j M Y'),
+        ]));
     }
 
     public function editUser(User $user)
     {
-        $subscription = $user->subscriptions()->first();
+        $subscription = $user->subscriptions()->orderBy('id')->first();
+        $user->loadCount('restaurants');
+
         return view('admin.edit-user', compact('user', 'subscription'));
     }
 
-    public function updateUser(Request $request, User $user)
+    public function updateUser(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
-            'expires_at' => 'nullable|date',
-        ]);
+        $data = $request->validated();
 
-        // Update user data
-        $updateData = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-        ];
+        DB::transaction(function () use ($user, $data) {
+            $user->fill([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'] ?? null,
+            ]);
 
-        // Only update password if provided
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($request->password);
-        }
+            if (filled($data['password'] ?? null)) {
+                $user->password = $data['password'];
+            }
 
-        $user->update($updateData);
+            $user->save();
 
-        // Update subscription expiration date if provided
-        if ($request->filled('expires_at')) {
-            $subscription = $user->subscriptions()->firstOrCreate(
-                ['user_id' => $user->id],
-                ['amount' => 100.00]
-            );
-            $subscription->expires_at = \Carbon\Carbon::parse($request->expires_at);
-            $subscription->save();
-        } elseif ($request->has('expires_at')) {
-            // Field submitted but empty — clear the date
-            $subscription = $user->subscriptions()->first();
-            if ($subscription) {
+            if ($user->isAdmin()) {
+                return;
+            }
+
+            $subscription = $user->subscriptions()->orderBy('id')->first();
+
+            if (filled($data['expires_at'] ?? null)) {
+                if (! $subscription) {
+                    $subscription = new Subscription(['amount' => SubscriptionState::DEFAULT_AMOUNT]);
+                    $subscription->user_id = $user->id;
+                }
+                $subscription->expires_at = Carbon::parse($data['expires_at'])->startOfDay();
+                $subscription->save();
+            } elseif ($subscription && array_key_exists('expires_at', $data)) {
                 $subscription->expires_at = null;
                 $subscription->save();
             }
-        }
+        });
 
-        return redirect()->route('admin.index')->with('success', __('messages.user_updated_successfully'));
+        return redirect()->route('dashboard')->with('success', __('admin.flash.user_updated', ['name' => $user->name]));
+    }
+
+    /**
+     * Return to the dashboard, keeping its current search/filter/page query when
+     * the action was triggered from there.
+     */
+    private function backToDashboard(): RedirectResponse
+    {
+        $previous = url()->previous();
+        $dashboard = route('dashboard');
+
+        return redirect()->to(str_starts_with($previous, $dashboard) ? $previous : $dashboard);
     }
 }

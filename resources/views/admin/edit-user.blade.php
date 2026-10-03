@@ -1,376 +1,98 @@
+@php
+    $invalid = fn (string $field) => $errors->has($field) ? 'aria-invalid=true' : '';
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('admin.index') }}" class="text-gray-400 hover:text-white transition-colors">
-                <i class="fas fa-arrow-left text-xl"></i>
-            </a>
+        <div class="adm-header">
             <div>
-                <h2 class="font-semibold text-xl text-white leading-tight">
-                    {{ __('messages.edit_user') }}
-                </h2>
-                <p class="text-gray-400 mt-1">{{ $user->name }} - {{ $user->email }}</p>
+                <h2 class="adm-title">{{ __('admin.edit_user.title') }}</h2>
+                <p class="adm-muted">{{ $user->name }} — <span class="adm-ltr">{{ $user->email }}</span></p>
             </div>
+            <a href="{{ route('dashboard') }}" class="adm-btn adm-btn-secondary">
+                <i class="fas fa-arrow-left adm-flip adm-icon-gap"></i>{{ __('admin.common.back') }}
+            </a>
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="edit-form-card">
-                <div class="form-header">
-                    <div class="form-icon">
-                        <i class="fas fa-user-edit text-white text-3xl"></i>
+    @include('admin.partials.styles')
+
+    <div class="adm-page">
+        <div class="adm-container-narrow">
+            @include('admin.partials.flash', ['bag' => 'default'])
+
+            <form method="POST" action="{{ route('admin.user.update', $user) }}" class="adm-card adm-form" novalidate>
+                @csrf
+                @method('PUT')
+
+                <section class="adm-section">
+                    <h3 class="adm-section-title">{{ __('admin.edit_user.details') }}</h3>
+                    <p class="adm-help">
+                        {{ __('admin.edit_user.role', ['role' => __('admin.roles.'.($user->role ?: 'user'))]) }}
+                        · {{ __('admin.edit_user.owns_restaurants', ['count' => $user->restaurants_count]) }}
+                    </p>
+
+                    <div class="adm-field">
+                        <label for="name" class="adm-label">{{ __('admin.edit_user.name') }}</label>
+                        <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}" required maxlength="255" class="adm-input" {{ $invalid('name') }}>
+                        @include('admin.partials.field-error', ['field' => 'name'])
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-2">{{ __('messages.edit_user_details') }}</h3>
-                    <p class="text-gray-400">{{ __('messages.update_user_information') }}</p>
+                    <div class="adm-field">
+                        <label for="email" class="adm-label">{{ __('admin.edit_user.email') }}</label>
+                        <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}" required maxlength="255" class="adm-input adm-input-ltr" {{ $invalid('email') }}>
+                        @include('admin.partials.field-error', ['field' => 'email'])
+                    </div>
+                    <div class="adm-field">
+                        <label for="phone" class="adm-label">{{ __('admin.edit_user.phone') }}</label>
+                        <input type="tel" id="phone" name="phone" value="{{ old('phone', $user->phone) }}" maxlength="20" class="adm-input adm-input-ltr" {{ $invalid('phone') }}>
+                        @include('admin.partials.field-error', ['field' => 'phone'])
+                    </div>
+                </section>
+
+                <section class="adm-section">
+                    <h3 class="adm-section-title">{{ __('admin.edit_user.password_section') }}</h3>
+                    <p class="adm-help">{{ __('admin.edit_user.password_help') }}</p>
+                    <div class="adm-field">
+                        <label for="password" class="adm-label">{{ __('admin.edit_user.password') }}</label>
+                        <input type="password" id="password" name="password" autocomplete="new-password" class="adm-input adm-input-ltr" {{ $invalid('password') }}>
+                        @include('admin.partials.field-error', ['field' => 'password'])
+                    </div>
+                    <div class="adm-field">
+                        <label for="password_confirmation" class="adm-label">{{ __('admin.edit_user.password_confirmation') }}</label>
+                        <input type="password" id="password_confirmation" name="password_confirmation" autocomplete="new-password" class="adm-input adm-input-ltr">
+                    </div>
+                </section>
+
+                <section class="adm-section">
+                    <h3 class="adm-section-title">{{ __('admin.edit_user.subscription_section') }}</h3>
+                    @if ($user->isAdmin())
+                        <p class="adm-help">{{ __('admin.edit_user.admin_no_subscription') }}</p>
+                    @else
+                        @if ($subscription)
+                            <p class="adm-help">
+                                {{ __('admin.edit_user.current_amount', ['amount' => number_format((float) $subscription->amount, 2)]) }}
+                                · {{ $subscription->paid_at ? __('admin.subscription.last_paid', ['date' => $subscription->paid_at->translatedFormat('j M Y')]) : __('admin.subscription.never_paid') }}
+                                · <a href="{{ route('admin.subscription.edit', $subscription) }}">{{ __('admin.subscription.edit') }}</a>
+                            </p>
+                        @else
+                            <p class="adm-help">{{ __('admin.edit_user.no_subscription') }}</p>
+                        @endif
+                        <div class="adm-field">
+                            <label for="expires_at" class="adm-label">{{ __('admin.edit_user.next_payment_date') }}</label>
+                            <input type="date" id="expires_at" name="expires_at" value="{{ old('expires_at', $subscription?->expires_at?->format('Y-m-d')) }}" class="adm-input adm-input-ltr" {{ $invalid('expires_at') }}>
+                            <p class="adm-help">{{ __('admin.edit_user.next_payment_help') }}</p>
+                            @include('admin.partials.field-error', ['field' => 'expires_at'])
+                        </div>
+                    @endif
+                </section>
+
+                <div class="adm-actions">
+                    <a href="{{ route('dashboard') }}" class="adm-btn adm-btn-secondary">{{ __('admin.common.cancel') }}</a>
+                    <button type="submit" class="adm-btn adm-btn-primary">
+                        <i class="fas fa-save adm-icon-gap"></i>{{ __('admin.edit_user.submit') }}
+                    </button>
                 </div>
-
-                <!-- Error Messages -->
-                @if ($errors->any())
-                    <div class="alert alert-error mb-6">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        <ul class="list-disc list-inside">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <!-- Success Message -->
-                @if (session('success'))
-                    <div class="alert alert-success mb-6">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                <form action="{{ route('admin.user.update', $user) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="form-grid">
-                        <!-- Name -->
-                        <div class="form-field">
-                            <label for="name" class="form-label">
-                                <i class="fas fa-user mr-2"></i>
-                                {{ __('messages.full_name') }}
-                            </label>
-                            <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}"
-                                placeholder="{{ __('messages.enter_full_name') }}" class="form-input" required>
-                        </div>
-
-                        <!-- Email -->
-                        <div class="form-field">
-                            <label for="email" class="form-label">
-                                <i class="fas fa-envelope mr-2"></i>
-                                {{ __('messages.email_address') }}
-                            </label>
-                            <input type="email" id="email" name="email"
-                                value="{{ old('email', $user->email) }}"
-                                placeholder="{{ __('messages.enter_your_email') }}" class="form-input" required>
-                            <div class="form-help">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                {{ __('messages.email_change_warning') }}
-                            </div>
-                        </div>
-
-                        <!-- Phone -->
-                        <div class="form-field">
-                            <label for="phone" class="form-label">
-                                <i class="fas fa-phone mr-2"></i>
-                                {{ __('messages.phone_number') }}
-                            </label>
-                            <input type="tel" id="phone" name="phone"
-                                value="{{ old('phone', $user->phone) }}"
-                                placeholder="{{ __('messages.enter_phone_number') }}" class="form-input">
-                            <div class="form-help">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                {{ __('messages.phone_optional') }}
-                            </div>
-                        </div>
-
-                        <!-- Password Section -->
-                        <div class="password-section">
-                            <h4 class="section-title">{{ __('messages.change_password_optional') }}</h4>
-                            <p class="section-description">{{ __('messages.leave_blank_keep_password') }}</p>
-
-                            <!-- New Password -->
-                            <div class="form-field">
-                                <label for="password" class="form-label">
-                                    <i class="fas fa-lock mr-2"></i>
-                                    {{ __('messages.new_password') }}
-                                </label>
-                                <input type="password" id="password" name="password"
-                                    placeholder="{{ __('messages.enter_new_password') }}" class="form-input"
-                                    minlength="8">
-                                <div class="form-help">
-                                    <i class="fas fa-info-circle mr-2"></i>
-                                    {{ __('messages.password_min_8_chars') }}
-                                </div>
-                            </div>
-
-                            <!-- Confirm New Password -->
-                            <div class="form-field">
-                                <label for="password_confirmation" class="form-label">
-                                    <i class="fas fa-lock mr-2"></i>
-                                    {{ __('messages.confirm_new_password') }}
-                                </label>
-                                <input type="password" id="password_confirmation" name="password_confirmation"
-                                    placeholder="{{ __('messages.confirm_new_password') }}" class="form-input"
-                                    minlength="8">
-                            </div>
-                        </div>
-
-                        <!-- Subscription Section -->
-                        <div class="password-section">
-                            <h4 class="section-title">
-                                <i class="fas fa-calendar-alt mr-2"></i>
-                                Subscription
-                            </h4>
-                            @if ($subscription)
-                                <p class="section-description">
-                                    Current amount: <strong
-                                        class="text-white">${{ number_format($subscription->amount, 2) }}</strong>
-                                    @if ($subscription->expires_at)
-                                        &mdash; {{ $subscription->expires_at->isPast() ? 'Expired' : 'Expires' }}
-                                        <span
-                                            class="{{ $subscription->expires_at->isPast() ? 'text-red-400' : 'text-green-400' }}">
-                                            {{ $subscription->expires_at->diffForHumans() }}
-                                        </span>
-                                    @else
-                                        <span class="text-gray-400">&mdash; No payment date set yet</span>
-                                    @endif
-                                </p>
-                            @else
-                                <p class="section-description">No subscription record yet. Set a date to create one.</p>
-                            @endif
-
-                            <div class="form-field">
-                                <label for="expires_at" class="form-label">
-                                    <i class="fas fa-calendar-check mr-2"></i>
-                                    Next Payment Date
-                                </label>
-                                <input type="date" id="expires_at" name="expires_at"
-                                    value="{{ old('expires_at', $subscription && $subscription->expires_at ? $subscription->expires_at->format('Y-m-d') : '') }}"
-                                    class="form-input">
-                                @error('expires_at')
-                                    <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Form Actions -->
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-save mr-2"></i>
-                                {{ __('messages.update_user') }}
-                            </button>
-                            <a href="{{ route('admin.index') }}" class="btn btn-secondary btn-lg">
-                                <i class="fas fa-times mr-2"></i>
-                                {{ __('messages.cancel') }}
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            </form>
         </div>
     </div>
-
-    <style>
-        .edit-form-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-xl);
-            padding: 3rem;
-            box-shadow: var(--shadow-lg);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .edit-form-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary-gradient);
-        }
-
-        .form-header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .form-icon {
-            width: 4rem;
-            height: 4rem;
-            background: var(--primary-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            box-shadow: var(--shadow-md);
-        }
-
-        .form-grid {
-            display: grid;
-            gap: 2rem;
-        }
-
-        .form-field {
-            display: grid;
-            gap: 0.75rem;
-        }
-
-        .form-label {
-            display: flex;
-            align-items: center;
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .form-input {
-            background: var(--bg-tertiary);
-            border: 2px solid var(--border-primary);
-            color: var(--text-primary);
-            padding: 1rem 1.25rem;
-            border-radius: var(--radius-lg);
-            transition: all 0.3s ease;
-            font-size: 1rem;
-            font-weight: 500;
-        }
-
-        .form-input:focus {
-            background: var(--bg-elevated);
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-            outline: none;
-            transform: translateY(-2px);
-        }
-
-        .form-input::placeholder {
-            color: var(--text-muted);
-            font-weight: 400;
-        }
-
-        .form-help {
-            display: flex;
-            align-items: center;
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-
-        .password-section {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            margin-top: 1rem;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .section-description {
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .btn-lg {
-            padding: 1rem 2rem;
-            font-size: 1.1rem;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-secondary);
-            border: 2px solid var(--border-primary);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-elevated);
-            border-color: var(--border-secondary);
-            transform: translateY(-2px);
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: var(--radius-lg);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #f87171;
-        }
-
-        .alert-success {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: #4ade80;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-lg);
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            border: 1px solid #10b981;
-        }
-
-        .btn-success:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
-        }
-
-        @media (max-width: 640px) {
-            .edit-form-card {
-                padding: 2rem;
-            }
-
-            .form-actions {
-                flex-direction: column;
-            }
-
-            .btn-lg {
-                flex: none;
-                min-width: auto;
-            }
-        }
-    </style>
 </x-app-layout>

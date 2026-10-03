@@ -10,14 +10,26 @@ class MenuController extends Controller
 {
     public function show($slug)
     {
+        $locale = request()->query('lang', request()->cookie('app_locale', config('app.locale')));
+        if (in_array($locale, ['ar', 'en'], true)) {
+            app()->setLocale($locale);
+        }
+
         $restaurant = Restaurant::with([
             'activeMenuCategories.activeMenuItems.optionGroups.activeOptions',
         ])
             ->select([
                 'id',
                 'name',
+                'name_en',
                 'slug',
                 'description',
+                'description_en',
+                'welcome_title',
+                'welcome_title_en',
+                'welcome_message',
+                'welcome_message_en',
+                'welcome_video',
                 'logo',
                 'background_image',
                 'is_active',

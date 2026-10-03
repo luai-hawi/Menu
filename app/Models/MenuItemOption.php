@@ -13,8 +13,10 @@ class MenuItemOption extends Model
     protected $fillable = [
         'option_group_id',
         'option_name_ar',
+        'option_name_en',
         'price_delta',
         'option_note_ar',
+        'option_note_en',
         'position',
         'is_active',
     ];
@@ -36,7 +38,7 @@ class MenuItemOption extends Model
      */
     public function nameFor(?string $locale = null): string
     {
-        return (string) ($this->option_name_ar ?? '');
+        return (string) (($locale ?? app()->getLocale()) === 'en' && filled($this->option_name_en) ? $this->option_name_en : $this->option_name_ar);
     }
 
     /**
@@ -44,6 +46,8 @@ class MenuItemOption extends Model
      */
     public function noteFor(?string $locale = null): ?string
     {
-        return ! empty($this->option_note_ar) ? $this->option_note_ar : null;
+        $note = ($locale ?? app()->getLocale()) === 'en' && filled($this->option_note_en) ? $this->option_note_en : $this->option_note_ar;
+
+        return filled($note) ? $note : null;
     }
 }

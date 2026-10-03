@@ -1,5 +1,5 @@
 {{--
-    Option Groups Editor (Arabic-only, mobile-friendly)
+    Option Groups Editor (bilingual, mobile-friendly)
     ===================================================
     Nested form UI for editing an item's option groups and options.
     All labels, placeholders and helpers pull from messages.optionGroups.*
@@ -12,10 +12,12 @@
 @php
     $groups      = $groups      ?? [];
     $fieldPrefix = $fieldPrefix ?? 'option_groups';
+    $listenForEdit = $listenForEdit ?? false;
 @endphp
 
 <div
     x-data="optionGroupsEditor(@js($groups))"
+    @edititem.window="if (@js($listenForEdit)) loadGroups($event.detail.optionGroups)"
     x-cloak
     class="og-editor"
 >
@@ -31,7 +33,6 @@
             <span>{{ __('messages.optionGroups.add') }}</span>
         </button>
     </div>
-
     <template x-if="groups.length === 0">
         <div class="og-empty">
             <i class="fas fa-layer-group"></i>
@@ -58,6 +59,12 @@
                                dir="rtl"
                                placeholder="{{ __('messages.optionGroups.name_placeholder') }}"
                                class="og-input" required>
+                    </div>
+
+                    <div class="og-group-name">
+                        <label class="og-label">{{ __('studio.group_name_en') }}</label>
+                        <input type="text" :name="`{{ $fieldPrefix }}[${gIdx}][group_name_en]`"
+                               x-model="group.group_name_en" dir="ltr" maxlength="255" class="og-input">
                     </div>
 
                     <button type="button"
@@ -101,6 +108,7 @@
                 <!-- Required toggle + (MULTIPLE only) min/max -->
                 <div class="og-row og-row-inline">
                     <label class="og-toggle">
+                        <input type="hidden" :name="`{{ $fieldPrefix }}[${gIdx}][is_required]`" value="0">
                         <input type="checkbox"
                                :name="`{{ $fieldPrefix }}[${gIdx}][is_required]`"
                                value="1"
@@ -160,8 +168,8 @@
                         <p class="og-empty-sm">{{ __('messages.options.empty_state') }}</p>
                     </template>
 
-                    <div :x-ref="`options-${gIdx}`"
-                         x-init="initOptionsSortable(gIdx)"
+                    <div :data-options-key="group._key"
+                         x-init="initOptionsSortable(group._key)"
                          class="og-options-list">
                         <template x-for="(opt, oIdx) in group.options" :key="opt._key">
                             <div :data-id="opt._key" class="og-option">
@@ -174,9 +182,15 @@
                                     <input type="text"
                                            :name="`{{ $fieldPrefix }}[${gIdx}][options][${oIdx}][option_name_ar]`"
                                            x-model="opt.option_name_ar"
+                                           aria-label="{{ __('studio.option_name_ar') }}"
                                            dir="rtl"
                                            placeholder="{{ __('messages.options.name_placeholder') }}"
                                            class="og-input og-option-name" required>
+                                    <input type="text"
+                                           :name="`{{ $fieldPrefix }}[${gIdx}][options][${oIdx}][option_name_en]`"
+                                           x-model="opt.option_name_en" dir="ltr" maxlength="255"
+                                           aria-label="{{ __('studio.option_name_en') }}"
+                                           placeholder="{{ __('studio.option_name_en') }}" class="og-input og-option-name">
 
                                     <div class="og-option-price">
                                         <input type="number" step="0.01"
@@ -196,9 +210,11 @@
                                         </button>
                                         <label class="og-active-toggle"
                                                :title="'{{ __('messages.options.is_active') }}'">
+                                            <input type="hidden" :name="`{{ $fieldPrefix }}[${gIdx}][options][${oIdx}][is_active]`" value="0">
                                             <input type="checkbox"
                                                    :name="`{{ $fieldPrefix }}[${gIdx}][options][${oIdx}][is_active]`"
                                                    value="1"
+                                                   aria-label="{{ __('messages.options.is_active') }}"
                                                    x-model="opt.is_active">
                                             <i :class="opt.is_active ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
                                         </label>
@@ -214,8 +230,14 @@
                                         <input type="text" maxlength="160" dir="rtl"
                                                :name="`{{ $fieldPrefix }}[${gIdx}][options][${oIdx}][option_note_ar]`"
                                                x-model="opt.option_note_ar"
+                                               aria-label="{{ __('studio.option_note_ar') }}"
                                                placeholder="{{ __('messages.options.note_placeholder') }}"
                                                class="og-input og-input-sm">
+                                        <input type="text" maxlength="160" dir="ltr"
+                                               :name="`{{ $fieldPrefix }}[${gIdx}][options][${oIdx}][option_note_en]`"
+                                               x-model="opt.option_note_en"
+                                               aria-label="{{ __('studio.option_note_en') }}"
+                                               placeholder="{{ __('studio.option_note_en') }}" class="og-input og-input-sm">
                                         <small class="og-help-sm"
                                                x-text="`{{ __('messages.common.characters_left', ['count' => ':c']) }}`.replace(':c', 160 - (opt.option_note_ar?.length || 0))">
                                         </small>
@@ -240,6 +262,7 @@
     </div>
 </div>
 
+@once
 <script>
     /*
      * Alpine component for the option-groups editor.
@@ -254,17 +277,20 @@
             id: g.id ?? null,
             group_type:   g.group_type   || 'SINGLE',
             group_name_ar: g.group_name_ar || '',
+            group_name_en: g.group_name_en || '',
             min_choices: Number(g.min_choices ?? 0),
             max_choices: Number(g.max_choices ?? 1),
             is_required: !!g.is_required,
             position: Number(g.position ?? 0),
             options: (g.options || []).map((o) => ({
                 _key: makeKey(),
-                _notesOpen: !!o.option_note_ar,
+                _notesOpen: !!(o.option_note_ar || o.option_note_en),
                 id: o.id ?? null,
                 option_name_ar: o.option_name_ar || '',
+                option_name_en: o.option_name_en || '',
                 price_delta: Number(o.price_delta ?? 0),
                 option_note_ar: o.option_note_ar || '',
+                option_note_en: o.option_note_en || '',
                 position: Number(o.position ?? 0),
                 is_active: o.is_active !== false,
             })),
@@ -273,12 +299,17 @@
         return {
             groups: hydrate(initial),
 
+            loadGroups(groups) {
+                this.groups = hydrate(groups);
+            },
+
             addGroup() {
                 this.groups.push({
                     _key: makeKey(),
                     id: null,
                     group_type: 'SINGLE',
                     group_name_ar: '',
+                    group_name_en: '',
                     min_choices: 0,
                     max_choices: 1,
                     is_required: false,
@@ -300,8 +331,10 @@
                     _notesOpen: false,
                     id: null,
                     option_name_ar: '',
+                    option_name_en: '',
                     price_delta: 0,
                     option_note_ar: '',
+                    option_note_en: '',
                     position: g.options.length,
                     is_active: true,
                 });
@@ -341,28 +374,31 @@
                     window.Sortable.create(this.$refs.groupsList, {
                         animation: 150,
                         handle: '.og-handle:not(.og-handle-opt)',
+                        draggable: '.og-group',
                         ghostClass: 'sortable-ghost',
                         onEnd: (e) => {
-                            if (e.oldIndex === e.newIndex) return;
-                            const moved = this.groups.splice(e.oldIndex, 1)[0];
-                            this.groups.splice(e.newIndex, 0, moved);
+                            if (e.oldDraggableIndex === e.newDraggableIndex) return;
+                            const moved = this.groups.splice(e.oldDraggableIndex, 1)[0];
+                            this.groups.splice(e.newDraggableIndex, 0, moved);
                         },
                     });
                 });
             },
 
-            initOptionsSortable(gIdx) {
+            initOptionsSortable(groupKey) {
                 this.$nextTick(() => {
-                    const ref = this.$refs[`options-${gIdx}`];
+                    const ref = this.$root.querySelector(`[data-options-key="${groupKey}"]`);
                     if (!ref || !window.Sortable) return;
                     window.Sortable.create(ref, {
                         animation: 150,
                         handle: '.og-handle-opt',
+                        draggable: '.og-option',
                         ghostClass: 'sortable-ghost',
                         onEnd: (e) => {
-                            if (e.oldIndex === e.newIndex) return;
-                            const moved = this.groups[gIdx].options.splice(e.oldIndex, 1)[0];
-                            this.groups[gIdx].options.splice(e.newIndex, 0, moved);
+                            const group = this.groups.find(g => g._key === groupKey);
+                            if (!group || e.oldDraggableIndex === e.newDraggableIndex) return;
+                            const moved = group.options.splice(e.oldDraggableIndex, 1)[0];
+                            group.options.splice(e.newDraggableIndex, 0, moved);
                         },
                     });
                 });
@@ -657,7 +693,8 @@
         cursor: pointer;
         color: #94a3b8;
     }
-    .og-active-toggle input { display: none; }
+    .og-active-toggle input[type="checkbox"] { width: 1rem; height: 1rem; margin-inline-end: .35rem; accent-color: #6366f1; }
+    .og-active-toggle:focus-within { outline: 2px solid #a5b4fc; outline-offset: 2px; }
     .og-active-toggle:hover { background: rgba(255,255,255,0.05); }
 
     .og-note {
@@ -686,3 +723,4 @@
         .og-seg { flex: 1; justify-content: center; }
     }
 </style>
+@endonce

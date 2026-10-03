@@ -88,7 +88,12 @@
                             @csrf
                             <div class="dash-field">
                                 <input type="text" name="name" required
+                                    aria-label="{{ __('studio.name_ar') }}" dir="rtl"
                                     placeholder="{{ __('messages.category_name_placeholder') }}" class="dash-input">
+                            </div>
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('studio.name_en') }}</label>
+                                <input type="text" name="name_en" dir="ltr" maxlength="255" class="dash-input">
                             </div>
                             <button type="submit" class="dash-btn dash-btn-primary dash-btn-block">
                                 <i class="fas fa-plus"></i>
@@ -118,8 +123,13 @@
                             </div>
 
                             <div class="dash-field">
-                                <label class="dash-label">{{ __('messages.item_name') }}</label>
+                                <label class="dash-label">{{ __('studio.name_ar') }}</label>
                                 <input type="text" name="name" class="dash-input" required dir="rtl">
+                            </div>
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('studio.name_en') }}</label>
+                                <input type="text" name="name_en" class="dash-input" dir="ltr" maxlength="255">
+                                <small class="dash-help">{{ __('studio.english_fallback') }}</small>
                             </div>
 
                             <div class="dash-field-row">
@@ -130,15 +140,24 @@
                                 </div>
                                 <div class="dash-field" style="flex:3">
                                     <label class="dash-label">{{ __('messages.item_image_optional') }}</label>
-                                    <input type="file" name="image" accept="image/*"
+                                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
                                         class="dash-input dash-input-file">
                                 </div>
                             </div>
 
                             <div class="dash-field">
-                                <label class="dash-label">{{ __('messages.description_optional') }}</label>
+                                <label class="dash-label">{{ __('studio.description_ar') }}</label>
                                 <textarea name="description" class="dash-input" rows="2" dir="rtl"></textarea>
                             </div>
+                            <div class="dash-field">
+                                <label class="dash-label">{{ __('studio.description_en') }}</label>
+                                <textarea name="description_en" class="dash-input" rows="2" dir="ltr" maxlength="1000"></textarea>
+                            </div>
+                            <label class="dash-toggle">
+                                <input type="hidden" name="is_active" value="0">
+                                <input type="checkbox" name="is_active" value="1" checked>
+                                <span>{{ __('studio.published') }}</span>
+                            </label>
 
                             <button type="button" class="dash-collapse-toggle" @click="showAdvanced = !showAdvanced"
                                 :aria-expanded="showAdvanced.toString()">
@@ -192,6 +211,31 @@
                                         <span>{{ __('messages.delete_category') }}</span>
                                     </button>
                                 </summary>
+                                <details class="dash-card">
+                                    <summary>{{ __('studio.edit_category') }}
+                                        @unless($category->is_active)
+                                            <span class="dash-count-badge">{{ __('studio.unpublished') }}</span>
+                                        @endunless
+                                    </summary>
+                                    <form action="{{ route('category.update', $category) }}" method="POST" data-ajax data-ajax-reload>
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="dash-field">
+                                            <label class="dash-label">{{ __('studio.name_ar') }}</label>
+                                            <input type="text" name="name" value="{{ $category->name }}" dir="rtl" maxlength="255" required class="dash-input">
+                                        </div>
+                                        <div class="dash-field">
+                                            <label class="dash-label">{{ __('studio.name_en') }}</label>
+                                            <input type="text" name="name_en" value="{{ $category->name_en }}" dir="ltr" maxlength="255" class="dash-input">
+                                        </div>
+                                        <label class="dash-toggle">
+                                            <input type="hidden" name="is_active" value="0">
+                                            <input type="checkbox" name="is_active" value="1" @checked($category->is_active)>
+                                            <span>{{ __('studio.published') }}</span>
+                                        </label>
+                                        <button type="submit" class="dash-btn dash-btn-primary">{{ __('studio.save_category') }}</button>
+                                    </form>
+                                </details>
 
                                 @if ($category->menuItems->isEmpty())
                                     <div class="dash-empty-sm">
@@ -210,6 +254,7 @@
                                                             'id' => $g->id,
                                                             'group_type' => $g->group_type,
                                                             'group_name_ar' => $g->group_name_ar,
+                                                            'group_name_en' => $g->group_name_en,
                                                             'min_choices' => $g->min_choices,
                                                             'max_choices' => $g->max_choices,
                                                             'is_required' => (bool) $g->is_required,
@@ -219,8 +264,10 @@
                                                                     fn($o) => [
                                                                         'id' => $o->id,
                                                                         'option_name_ar' => $o->option_name_ar,
+                                                                        'option_name_en' => $o->option_name_en,
                                                                         'price_delta' => (float) $o->price_delta,
                                                                         'option_note_ar' => $o->option_note_ar,
+                                                                        'option_note_en' => $o->option_note_en,
                                                                         'position' => $o->position,
                                                                         'is_active' => (bool) $o->is_active,
                                                                     ],
@@ -250,6 +297,9 @@
                                                 </div>
                                                 <div class="dash-item-body">
                                                     <h4 class="dash-item-title">{{ $item->name }}</h4>
+                                                    @unless($item->is_active)
+                                                        <span class="dash-count-badge">{{ __('studio.unpublished') }}</span>
+                                                    @endunless
                                                     @if ($item->description)
                                                         <p class="dash-item-desc">{{ $item->description }}</p>
                                                     @endif
@@ -277,7 +327,7 @@
                                                         @click.stop="
                                                                 document.getElementById('editItemForm').action = `{{ route('item.update', $item) }}`;
                                                                 window.dispatchEvent(new CustomEvent('edititem', {
-                                                                    detail: {{ json_encode(['id' => $item->id, 'name' => $item->name, 'price' => $item->price, 'description' => $item->description ?? '', 'image' => $item->image ?? '', 'category_id' => $item->category_id ?? null, 'optionGroups' => $itemGroupsPayload]) }}
+                                                                    detail: {{ json_encode(['id' => $item->id, 'name' => $item->name, 'name_en' => $item->name_en ?? '', 'price' => $item->price, 'description' => $item->description ?? '', 'description_en' => $item->description_en ?? '', 'is_active' => $item->is_active, 'image' => $item->image ?? '', 'category_id' => $item->menu_category_id, 'optionGroups' => $itemGroupsPayload]) }}
                                                                 }))
                                                             "
                                                         class="dash-btn-icon dash-btn-icon-blue"
@@ -304,7 +354,7 @@
             </section>
 
             {{-- Global Edit Modal --}}
-            <div x-data="{ showEditModal: false, currentItem: { id: null, name: '', price: 0, description: '', image: '', category_id: null, optionGroups: [] } }" @edititem.window="showEditModal = true; currentItem = $event.detail">
+            <div x-data="{ showEditModal: false, currentItem: { id: null, name: '', name_en: '', price: 0, description: '', description_en: '', is_active: true, image: '', category_id: null, optionGroups: [] } }" @edititem.window="showEditModal = true; currentItem = $event.detail">
                 <div x-show="showEditModal" x-cloak @keydown.escape.window="showEditModal = false" class="dash-modal"
                     @click="showEditModal = false">
                     <div class="dash-modal-card" @click.stop>
@@ -321,14 +371,27 @@
                             @method('PUT')
                             <div class="dash-modal-body">
                                 <div class="dash-field">
-                                    <label class="dash-label">{{ __('messages.item_name') }}</label>
+                                    <label class="dash-label">{{ __('studio.name_ar') }}</label>
                                     <input type="text" name="name" x-model="currentItem.name"
                                         class="dash-input" required dir="rtl">
                                 </div>
                                 <div class="dash-field">
-                                    <label class="dash-label">{{ __('messages.description_optional') }}</label>
+                                    <label class="dash-label">{{ __('studio.name_en') }}</label>
+                                    <input type="text" name="name_en" x-model="currentItem.name_en" class="dash-input" dir="ltr" maxlength="255">
+                                </div>
+                                <div class="dash-field">
+                                    <label class="dash-label">{{ __('studio.description_ar') }}</label>
                                     <textarea name="description" x-model="currentItem.description" class="dash-input" rows="2" dir="rtl"></textarea>
                                 </div>
+                                <div class="dash-field">
+                                    <label class="dash-label">{{ __('studio.description_en') }}</label>
+                                    <textarea name="description_en" x-model="currentItem.description_en" class="dash-input" rows="2" dir="ltr" maxlength="1000"></textarea>
+                                </div>
+                                <label class="dash-toggle">
+                                    <input type="hidden" name="is_active" value="0">
+                                    <input type="checkbox" name="is_active" value="1" x-model="currentItem.is_active">
+                                    <span>{{ __('studio.published') }}</span>
+                                </label>
                                 <div class="dash-field-row">
                                     <div class="dash-field" style="flex:2">
                                         <label class="dash-label">{{ __('messages.price') }}</label>
@@ -337,13 +400,13 @@
                                     </div>
                                     <div class="dash-field" style="flex:3">
                                         <label class="dash-label">{{ __('messages.update_image_optional') }}</label>
-                                        <input type="file" name="image" accept="image/*"
+                                        <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
                                             class="dash-input dash-input-file">
                                     </div>
                                 </div>
 
                                 {{-- Option Groups Editor --}}
-                                @include('restaurant.partials.option-groups-editor', ['groups' => []])
+                                @include('restaurant.partials.option-groups-editor', ['groups' => [], 'listenForEdit' => true])
                             </div>
                             <footer class="dash-modal-foot">
                                 <button type="button" @click="showEditModal = false"
@@ -373,24 +436,33 @@
                         @csrf
 
                         <div class="dash-field">
-                            <label class="dash-label">{{ __('messages.restaurant_name') }}</label>
+                            <label class="dash-label">{{ __('studio.name_ar') }}</label>
                             <input type="text" name="name" value="{{ $restaurant->name }}" class="dash-input"
-                                required>
+                                required dir="rtl">
                             <small class="dash-help">{{ __('messages.restaurant_name_help') }}</small>
+                        </div>
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('studio.name_en') }}</label>
+                            <input type="text" name="name_en" value="{{ $restaurant->name_en }}" dir="ltr" maxlength="255" class="dash-input">
+                            <small class="dash-help">{{ __('studio.english_fallback') }}</small>
                         </div>
 
                         <div class="dash-field">
-                            <label class="dash-label">{{ __('messages.restaurant_description') }}</label>
-                            <textarea name="description" rows="3" class="dash-input"
+                            <label class="dash-label">{{ __('studio.description_ar') }}</label>
+                            <textarea name="description" rows="3" class="dash-input" dir="rtl"
                                 placeholder="{{ __('messages.restaurant_description_placeholder') }}">{{ $restaurant->description }}</textarea>
                             <small class="dash-help">{{ __('messages.restaurant_description_help') }}</small>
+                        </div>
+                        <div class="dash-field">
+                            <label class="dash-label">{{ __('studio.description_en') }}</label>
+                            <textarea name="description_en" rows="3" class="dash-input" dir="ltr" maxlength="1000">{{ $restaurant->description_en }}</textarea>
                         </div>
 
                         <div class="dash-field">
                             <label class="dash-label">{{ __('messages.restaurant_logo') }}</label>
-                            <input type="file" name="logo" accept="image/*"
+                            <input type="file" name="logo" accept="image/jpeg,image/png,image/webp"
                                 class="dash-input dash-input-file">
-                            <small class="dash-help">{{ __('messages.logo_upload_help') }}</small>
+                            <small class="dash-help">{{ __('studio.image_help') }}</small>
                             @if ($restaurant->logo)
                                 <div class="dash-current-image">
                                     <p>{{ __('messages.current_logo') }}:</p>
@@ -422,9 +494,9 @@
                         @csrf
                         <div class="dash-field">
                             <label class="dash-label">{{ __('messages.background_image_optional') }}</label>
-                            <input type="file" name="background_image" accept="image/*"
+                            <input type="file" name="background_image" accept="image/jpeg,image/png,image/webp"
                                 class="dash-input dash-input-file">
-                            <small class="dash-help">{{ __('messages.background_image_help') }}</small>
+                            <small class="dash-help">{{ __('studio.background_help') }}</small>
                             @if ($restaurant->background_image)
                                 <div class="dash-current-image">
                                     <p>{{ __('messages.current_background') }}:</p>
@@ -441,6 +513,46 @@
                             <i class="fas fa-save"></i>
                             <span>{{ __('messages.save_background_image') }}</span>
                         </button>
+                    </form>
+                </div>
+
+                <div class="dash-card dash-card-wide">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-blue"><i class="fas fa-video"></i></div>
+                        <h3>{{ __('studio.welcome_scene') }}</h3>
+                    </header>
+                    <form action="{{ route('restaurant.update.settings') }}" method="POST" enctype="multipart/form-data" data-ajax>
+                        @csrf
+                        @foreach (['welcome_title', 'welcome_title_en', 'welcome_message', 'welcome_message_en'] as $field)
+                            <div class="dash-field">
+                                <label class="dash-label" for="{{ $field }}">{{ __('studio.'.$field) }}</label>
+                                @if (str_contains($field, 'message'))
+                                    <textarea id="{{ $field }}" name="{{ $field }}" class="dash-input" rows="2"
+                                        dir="{{ str_ends_with($field, '_en') ? 'ltr' : 'rtl' }}" maxlength="1000">{{ $restaurant->$field }}</textarea>
+                                @else
+                                    <input id="{{ $field }}" name="{{ $field }}" value="{{ $restaurant->$field }}" class="dash-input"
+                                        dir="{{ str_ends_with($field, '_en') ? 'ltr' : 'rtl' }}" maxlength="255">
+                                @endif
+                            </div>
+                        @endforeach
+                        <div class="dash-field">
+                            <label class="dash-label" for="welcome_video">{{ __('studio.welcome_video') }}</label>
+                            <input id="welcome_video" type="file" name="welcome_video" accept="video/mp4,video/quicktime,video/webm"
+                                class="dash-input dash-input-file" aria-describedby="welcome_video_help" @disabled(! $videoAvailable)>
+                            <small id="welcome_video_help" class="dash-help">{{ __('studio.video_limits') }}</small>
+                            @unless ($videoAvailable)
+                                <p class="dash-help" role="status">{{ __('studio.video_unavailable') }}</p>
+                            @endunless
+                            @if ($restaurant->welcome_video)
+                                <video controls muted playsinline preload="none" class="dash-bg-preview"
+                                    src="{{ asset('storage/'.$restaurant->welcome_video) }}"></video>
+                                <label class="dash-toggle">
+                                    <input type="checkbox" name="remove_welcome_video" value="1">
+                                    <span>{{ __('studio.remove_video') }}</span>
+                                </label>
+                            @endif
+                        </div>
+                        <button type="submit" class="dash-btn dash-btn-primary">{{ __('studio.save_welcome') }}</button>
                     </form>
                 </div>
 
@@ -1345,21 +1457,10 @@
                 applyPreset(colors, presetKey) {
                     this.activePreset = presetKey;
                     Object.entries(colors).forEach(([name, value]) => {
-                        const label = document.querySelector(`#themeColorsForm label[x-data*="'${name}'"]`) ||
-                            document.querySelector(`#themeColorsForm input[name="${name}"]`)?.closest('label');
                         const inp = document.querySelector(`#themeColorsForm input[name="${name}"]`);
                         if (inp) {
                             inp.value = value;
-                            // Update Alpine data
-                            if (label && label._x_dataStack) {
-                                label._x_dataStack[0].color = value;
-                            }
-                            // Update preview swatch directly
-                            const preview = inp.closest('.dash-color-field')?.querySelector(
-                                '.dash-color-field-preview');
-                            if (preview) preview.style.background = value;
-                            const hex = inp.closest('.dash-color-field')?.querySelector('.dash-color-hex');
-                            if (hex) hex.textContent = value;
+                            inp.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     });
                     window.toast?.success(@js(__('messages.theme.preset_applied')));

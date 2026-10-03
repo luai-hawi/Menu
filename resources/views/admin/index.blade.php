@@ -1,278 +1,220 @@
-<!-- Fixed admin index.blade.php -->
+@php
+    use App\Services\Admin\AccountCleanupService;
+    use App\Services\Admin\SubscriptionState;
+
+    $badgeFor = [
+        SubscriptionState::EXPIRED => 'adm-badge-red',
+        SubscriptionState::UNPAID => 'adm-badge-amber',
+        SubscriptionState::ACTIVE => 'adm-badge-green',
+        SubscriptionState::NO_DUE_DATE => 'adm-badge-gray',
+    ];
+    $hasFilters = $filters['q'] !== '' || $filters['status'] !== '' || $filters['billing'] !== '';
+    $restaurantDeletionErrors = $errors->getBag('restaurantDeletion');
+    $accountDeletionErrors = $errors->getBag('accountDeletion');
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div class="adm-header">
             <div>
-                <h2 class="font-semibold text-xl text-white leading-tight">
-                    {{ __('messages.admin_dashboard') }}
-                </h2>
-                <p class="text-gray-400 mt-1">{{ __('messages.manage_restaurants_overview') }}</p>
+                <h2 class="adm-title">{{ __('admin.dashboard.title') }}</h2>
+                <p class="adm-muted">{{ __('admin.dashboard.subtitle') }}</p>
             </div>
-            <a href="{{ route('admin.restaurant.create') }}" class="btn btn-success">
-                <i class="fas fa-plus mr-2"></i>
-                {{ __('messages.add_restaurant') }}
+            <a href="{{ route('admin.restaurant.create') }}" class="adm-btn adm-btn-primary">
+                <i class="fas fa-plus"></i>
+                {{ __('admin.dashboard.add_restaurant') }}
             </a>
         </div>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    @include('admin.partials.styles')
 
-            <!-- Success/Error Messages -->
-            @if (session('success'))
-                <div class="alert alert-success mb-6">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    {{ session('success') }}
-                </div>
-            @endif
+    <div class="adm-page">
+        <div class="adm-container">
+            @include('admin.partials.flash', ['bag' => 'restaurantNotes'])
 
-            @if (session('error'))
-                <div class="alert alert-error mb-6">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    {{ session('error') }}
-                </div>
-            @endif
-
-            <!-- Statistics Cards -->
-            <div class="responsive-grid mb-8">
-                <div class="stat-card">
-                    <div class="stat-icon bg-gradient-to-br from-blue-500 to-blue-600">
-                        <i class="fas fa-store text-white text-2xl"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 class="text-lg font-semibold text-white mb-1">{{ __('messages.total_restaurants') }}</h3>
-                        <p class="text-3xl font-bold text-blue-400">{{ $restaurants->count() }}</p>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon bg-gradient-to-br from-green-500 to-green-600">
-                        <i class="fas fa-check-circle text-white text-2xl"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 class="text-lg font-semibold text-white mb-1">{{ __('messages.active_restaurants') }}</h3>
-                        <p class="text-3xl font-bold text-green-400">
-                            {{ $restaurants->where('is_active', true)->count() }}</p>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon bg-gradient-to-br from-purple-500 to-purple-600">
-                        <i class="fas fa-users text-white text-2xl"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 class="text-lg font-semibold text-white mb-1">{{ __('messages.restaurant_owners') }}</h3>
-                        <p class="text-3xl font-bold text-purple-400">{{ $users->count() }}</p>
-                    </div>
-                </div>
+            <div class="adm-metrics">
+                @foreach (['restaurants', 'active_restaurants', 'owners', 'due_subscriptions', 'unused_accounts'] as $metric)
+                    @php $anchor = ['due_subscriptions' => '#due-subscriptions', 'unused_accounts' => '#unused-accounts'][$metric] ?? null; @endphp
+                    @if ($anchor)
+                        <a class="adm-metric" href="{{ $anchor }}" data-metric="{{ $metric }}">
+                    @else
+                        <div class="adm-metric" data-metric="{{ $metric }}">
+                    @endif
+                        <div class="adm-metric-value">{{ $metrics[$metric] }}</div>
+                        <div class="adm-metric-label">{{ __('admin.dashboard.metrics.'.$metric) }}</div>
+                    @if ($anchor) </a> @else </div> @endif
+                @endforeach
             </div>
 
-            <!-- Restaurants Table -->
-            <div class="card">
-                <div class="flex justify-between items-center mb-6">
+            {{-- Restaurants --}}
+            <section class="adm-card" id="restaurants">
+                <div class="adm-card-head">
                     <div>
-                        <h3 class="text-2xl font-semibold text-white">{{ __('messages.all_restaurants') }}</h3>
-                        <p class="text-gray-400 mt-1">{{ __('messages.manage_accounts_settings') }}</p>
+                        <h3 class="adm-card-title">{{ __('admin.dashboard.restaurants_title') }}</h3>
+                        <p class="adm-muted adm-small">{{ __('admin.dashboard.results', ['count' => $restaurants->total()]) }}</p>
                     </div>
                 </div>
 
+                <form method="GET" action="{{ route('dashboard') }}" class="adm-filters" role="search">
+                    <div class="adm-field adm-field-wide">
+                        <label for="filter-q" class="adm-label">{{ __('admin.dashboard.filters.search') }}</label>
+                        <input type="search" id="filter-q" name="q" value="{{ $filters['q'] }}" class="adm-input"
+                            placeholder="{{ __('admin.dashboard.filters.search_placeholder') }}">
+                    </div>
+                    <div class="adm-field">
+                        <label for="filter-status" class="adm-label">{{ __('admin.dashboard.filters.status') }}</label>
+                        <select id="filter-status" name="status" class="adm-input">
+                            <option value="">{{ __('admin.dashboard.filters.status_any') }}</option>
+                            <option value="active" @selected($filters['status'] === 'active')>{{ __('admin.common.active') }}</option>
+                            <option value="inactive" @selected($filters['status'] === 'inactive')>{{ __('admin.common.inactive') }}</option>
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label for="filter-billing" class="adm-label">{{ __('admin.dashboard.filters.billing') }}</label>
+                        <select id="filter-billing" name="billing" class="adm-input">
+                            <option value="">{{ __('admin.dashboard.filters.billing_any') }}</option>
+                            @foreach (['due', 'ok', 'none'] as $billing)
+                                <option value="{{ $billing }}" @selected($filters['billing'] === $billing)>{{ __('admin.dashboard.filters.billing_'.$billing) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="adm-actions">
+                        <button type="submit" class="adm-btn adm-btn-primary">
+                            <i class="fas fa-search adm-icon-gap"></i>{{ __('admin.dashboard.filters.apply') }}
+                        </button>
+                        @if ($hasFilters)
+                            <a href="{{ route('dashboard') }}" class="adm-btn adm-btn-secondary">{{ __('admin.dashboard.filters.reset') }}</a>
+                        @endif
+                    </div>
+                </form>
+
                 @if ($restaurants->isEmpty())
-                    <div class="empty-state">
-                        <div class="empty-state-icon">
-                            <i class="fas fa-store text-6xl text-gray-500 mb-4"></i>
-                        </div>
-                        <h3 class="text-2xl font-semibold text-white mb-4">{{ __('messages.no_restaurants_yet') }}</h3>
-                        <p class="text-gray-400 mb-8 text-lg">{{ __('messages.start_adding_first_restaurant') }}</p>
-                        <a href="{{ route('admin.restaurant.create') }}" class="btn btn-success">
-                            <i class="fas fa-plus mr-2"></i>
-                            {{ __('messages.add_first_restaurant') }}
-                        </a>
+                    <div class="adm-empty">
+                        <i class="fas fa-store" style="font-size: 3rem; opacity: .5;"></i>
+                        @if ($hasFilters)
+                            <p class="adm-strong" style="margin-top: 1rem;">{{ __('admin.dashboard.empty_filtered') }}</p>
+                        @else
+                            <p class="adm-strong" style="margin-top: 1rem;">{{ __('admin.dashboard.empty') }}</p>
+                            <p>{{ __('admin.dashboard.empty_help') }}</p>
+                        @endif
                     </div>
                 @else
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
+                    <div class="adm-table-wrap" style="margin-top: 1.25rem;">
+                        <table class="adm-table">
                             <thead>
-                                <tr class="border-b border-gray-600">
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.restaurant') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.url') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.owner') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.phone_number') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.created') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        Next Payment</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.status') }}</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">
-                                        {{ __('messages.actions') }}</th>
+                                <tr>
+                                    <th>{{ __('admin.dashboard.table.restaurant') }}</th>
+                                    <th>{{ __('admin.dashboard.table.owner') }}</th>
+                                    <th>{{ __('admin.dashboard.table.next_payment') }}</th>
+                                    <th>{{ __('admin.common.status') }}</th>
+                                    <th>{{ __('admin.dashboard.table.notes') }}</th>
+                                    <th>{{ __('admin.common.actions') }}</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @foreach ($restaurants as $restaurant)
-                                    <tr class="table-row">
-                                        <td class="py-4 px-4">
-                                            <div class="flex items-center">
+                            <tbody>                                @foreach ($restaurants as $restaurant)
+                                    @php
+                                        $owner = $restaurant->user;
+                                        $sub = $owner?->subscriptions->first();
+                                        $subState = SubscriptionState::for($sub);
+                                        $ownerStatus = $restaurant->owner_deletion_status;
+                                        $notesOpen = $errors->restaurantNotes->any() && old('notes_target') === $restaurant->slug;
+                                    @endphp
+                                    <tr class="{{ $restaurant->is_active ? '' : 'adm-row-inactive' }}" data-restaurant="{{ $restaurant->slug }}">
+                                        <td>
+                                            <div class="adm-cell-flex">
                                                 @if ($restaurant->logo)
-                                                    <img src="{{ asset('storage/' . $restaurant->logo) }}"
-                                                        alt="{{ $restaurant->name }}" class="restaurant-avatar">
+                                                    <img src="{{ asset('storage/'.$restaurant->logo) }}" alt="" class="adm-avatar">
                                                 @else
-                                                    <div class="restaurant-avatar-placeholder">
-                                                        <span
-                                                            class="text-white font-semibold text-lg">{{ substr($restaurant->name, 0, 1) }}</span>
+                                                    <span class="adm-avatar-placeholder">{{ mb_substr($restaurant->name, 0, 1) }}</span>
+                                                @endif
+                                                <div>
+                                                    <div class="adm-strong">{{ $restaurant->name }}</div>
+                                                    <a href="{{ route('menu.show', $restaurant->slug) }}" target="_blank" rel="noopener" class="adm-code adm-ltr">/{{ $restaurant->slug }}</a>
+                                                    <div class="adm-muted adm-small">
+                                                        {{ __('admin.dashboard.table.created') }}: {{ $restaurant->created_at?->translatedFormat('j M Y') }}
                                                     </div>
-                                                @endif
-                                                <div class="ml-4">
-                                                    <div class="text-white font-semibold text-lg">
-                                                        {{ $restaurant->name }}</div>
-                                                    @if ($restaurant->description)
-                                                        <div class="text-gray-400 text-sm mt-1">
-                                                            {{ Str::limit($restaurant->description, 50) }}</div>
-                                                    @endif
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-4 px-4">
-                                            <code class="url-badge">{{ $restaurant->slug }}</code>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="text-white font-medium">{{ $restaurant->user->name }}</div>
-                                            <div class="text-gray-400 text-sm">{{ $restaurant->user->email }}</div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="text-white font-medium">
-                                                @if ($restaurant->user->phone)
-                                                    <i
-                                                        class="fas fa-phone text-green-400 mr-2"></i>{{ $restaurant->user->phone }}
-                                                @else
-                                                    <span
-                                                        class="text-gray-500">{{ __('messages.not_provided') }}</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="text-white font-medium">
-                                                <i class="fas fa-calendar text-blue-400 mr-2"></i>
-                                                {{ $restaurant->created_at->format('M j, Y') }}
-                                            </div>
-                                            <div class="text-gray-400 text-sm">
-                                                {{ $restaurant->created_at->diffForHumans() }}
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            @php $sub = $restaurant->user->subscriptions->first(); @endphp
-                                            @if ($sub && $sub->expires_at)
-                                                @php $isExpired = $sub->expires_at->isPast(); @endphp
-                                                <div class="text-white font-medium">
-                                                    <i
-                                                        class="fas fa-calendar-alt {{ $isExpired ? 'text-red-400' : 'text-green-400' }} mr-2"></i>
-                                                    {{ $sub->expires_at->format('M j, Y') }}
-                                                </div>
-                                                <div
-                                                    class="{{ $isExpired ? 'text-red-400' : 'text-gray-400' }} text-sm">
-                                                    {{ $sub->expires_at->diffForHumans() }}
-                                                </div>
-                                                <a href="{{ route('admin.subscription.edit', $sub) }}"
-                                                    class="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block">
-                                                    <i class="fas fa-edit mr-1"></i>Edit date
-                                                </a>
-                                            @elseif ($sub)
-                                                <span class="text-gray-500 text-sm">No date set</span>
-                                                <a href="{{ route('admin.subscription.edit', $sub) }}"
-                                                    class="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block">
-                                                    <i class="fas fa-edit mr-1"></i>Set date
-                                                </a>
-                                            @else
-                                                <span class="text-gray-500 text-sm">No subscription</span>
-                                                <a href="{{ route('admin.user.edit', $restaurant->user) }}"
-                                                    class="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block">
-                                                    <i class="fas fa-edit mr-1"></i>Set date
-                                                </a>
+                                        <td>
+                                            @if ($owner)
+                                                <div>{{ $owner->name }}</div>
+                                                <div class="adm-muted adm-small adm-ltr">{{ $owner->email }}</div>
+                                                <div class="adm-muted adm-small adm-ltr">{{ $owner->phone ?: __('admin.common.not_provided') }}</div>
+                                                <div class="adm-muted adm-small">{{ __('admin.dashboard.owner_restaurants', ['count' => $owner->restaurants_count]) }}</div>
                                             @endif
                                         </td>
-                                        <td class="py-4 px-4">
-                                            <span
-                                                class="status-badge {{ $restaurant->is_active ? 'status-active' : 'status-inactive' }}">
-                                                <i
-                                                    class="fas {{ $restaurant->is_active ? 'fa-check-circle' : 'fa-times-circle' }} mr-2"></i>
-                                                {{ $restaurant->is_active ? __('messages.active') : __('messages.inactive') }}
+                                        <td>
+                                            @if ($sub)
+                                                <span class="adm-badge {{ $badgeFor[$subState] }}">{{ __('admin.subscription.status.'.$subState) }}</span>
+                                                <div class="adm-small">
+                                                    @if ($sub->expires_at)
+                                                        {{ __('admin.subscription.due_on', ['date' => $sub->expires_at->translatedFormat('j M Y')]) }}
+                                                    @else
+                                                        <span class="adm-muted">{{ __('admin.subscription.no_date') }}</span>
+                                                    @endif
+                                                </div>
+                                                <a href="{{ route('admin.subscription.edit', $sub) }}" class="adm-small">{{ __('admin.subscription.edit') }}</a>
+                                            @else
+                                                <span class="adm-badge adm-badge-gray">{{ __('admin.subscription.status.none') }}</span>
+                                                @if ($owner && ! $owner->isAdmin())
+                                                    <div><a href="{{ route('admin.user.edit', $owner) }}" class="adm-small">{{ __('admin.subscription.set_date') }}</a></div>
+                                                @endif
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="adm-badge {{ $restaurant->is_active ? 'adm-badge-green' : 'adm-badge-red' }}">
+                                                {{ $restaurant->is_active ? __('admin.common.active') : __('admin.common.inactive') }}
                                             </span>
                                         </td>
-                                        <td class="py-4 px-4">
-                                            <div class="flex items-center space-x-3">
-                                                <a href="{{ route('menu.show', $restaurant->slug) }}" target="_blank"
-                                                    class="action-btn action-view"
-                                                    title="{{ __('messages.view_menu') }}">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M14 3h7m0 0v7m0-7L10 14m-4 7h12a2 2 0 002-2V10a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                </a>
-
-                                                <a href="{{ route('admin.restaurant.edit', $restaurant) }}"
-                                                    class="action-btn action-edit"
-                                                    title="{{ __('messages.edit_restaurant') }}">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                </a>
-
-                                                <a href="{{ route('admin.user.edit', $restaurant->user) }}"
-                                                    class="action-btn action-edit-user"
-                                                    title="{{ __('messages.edit_user') }}">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                    </svg>
-                                                </a>
-
-                                                <form action="{{ route('admin.restaurant.toggle', $restaurant) }}"
-                                                    method="POST" class="inline">
+                                        <td>
+                                            <div class="adm-notes" data-notes>{{ $restaurant->admin_notes ?: __('admin.notes.empty') }}</div>
+                                            <details class="adm-notes-details" @if ($notesOpen) open @endif>
+                                                <summary>{{ __('admin.notes.edit') }}</summary>
+                                                <form method="POST" action="{{ route('admin.restaurant.notes', $restaurant) }}">
                                                     @csrf
-                                                    <button type="submit"
-                                                        class="action-btn {{ $restaurant->is_active ? 'action-disable' : 'action-enable' }}"
-                                                        title="{{ $restaurant->is_active ? __('messages.disable') : __('messages.enable') }} {{ __('messages.restaurant') }}">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                                            fill="none" stroke="currentColor" stroke-width="2"
-                                                            stroke-linecap="round" stroke-linejoin="round"
-                                                            class="w-6 h-6 text-red-600">
-                                                            <!-- User head -->
-                                                            <circle cx="12" cy="7" r="4" />
-                                                            <!-- User shoulders -->
-                                                            <path d="M5.5 21a8.38 8.38 0 0 1 13 0" />
-                                                            <!-- Disable slash -->
-                                                            <line x1="4" y1="4" x2="20"
-                                                                y2="20" />
-                                                        </svg>
+                                                    @method('PUT')
+                                                    <input type="hidden" name="notes_target" value="{{ $restaurant->slug }}">
+                                                    <label for="notes-{{ $restaurant->id }}" class="adm-help">{{ __('admin.notes.private_hint') }}</label>
+                                                    <textarea id="notes-{{ $restaurant->id }}" name="admin_notes" rows="3" maxlength="5000" class="adm-input"
+                                                        placeholder="{{ __('admin.notes.placeholder') }}">{{ $notesOpen ? old('admin_notes') : $restaurant->admin_notes }}</textarea>
+                                                    <button type="submit" class="adm-btn adm-btn-secondary adm-btn-sm">{{ __('admin.notes.save') }}</button>
+                                                </form>
+                                            </details>
+                                        </td>
+                                        <td>
+                                            @php $toggleLabel = $restaurant->is_active ? __('admin.dashboard.deactivate') : __('admin.dashboard.activate'); @endphp
+                                            <div class="adm-icon-actions">
+                                                <a href="{{ route('menu.show', $restaurant->slug) }}" target="_blank" rel="noopener" class="adm-icon-btn"
+                                                    title="{{ __('admin.dashboard.view_menu') }}" aria-label="{{ __('admin.dashboard.view_menu') }}">
+                                                    <i class="fas fa-external-link-alt adm-flip"></i>
+                                                </a>
+                                                <a href="{{ route('admin.restaurant.edit', $restaurant) }}" class="adm-icon-btn adm-warn"
+                                                    title="{{ __('admin.dashboard.edit_restaurant') }}" aria-label="{{ __('admin.dashboard.edit_restaurant') }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                @if ($owner)
+                                                    <a href="{{ route('admin.user.edit', $owner) }}" class="adm-icon-btn"
+                                                        title="{{ __('admin.dashboard.edit_owner') }}" aria-label="{{ __('admin.dashboard.edit_owner') }}">
+                                                        <i class="fas fa-user-edit"></i>
+                                                    </a>
+                                                @endif
+                                                <form method="POST" action="{{ route('admin.restaurant.toggle', $restaurant) }}">
+                                                    @csrf
+                                                    <button type="submit" class="adm-icon-btn {{ $restaurant->is_active ? 'adm-warn' : 'adm-ok' }}"
+                                                        title="{{ $toggleLabel }}" aria-label="{{ $toggleLabel }}">
+                                                        <i class="fas {{ $restaurant->is_active ? 'fa-pause' : 'fa-play' }}"></i>
                                                     </button>
                                                 </form>
-                                                <button type="button" class="action-btn action-delete"
-                                                    title="{{ __('messages.delete_restaurant') }}"
-                                                    onclick="confirmDelete('{{ route('admin.restaurant.delete', $restaurant) }}', '{{ $restaurant->name }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                                        fill="none" stroke="currentColor" stroke-width="2"
-                                                        stroke-linecap="round" stroke-linejoin="round"
-                                                        class="w-6 h-6 text-red-600">
-                                                        <!-- Trash can -->
-                                                        <polyline points="3 6 5 6 21 6" />
-                                                        <path
-                                                            d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2" />
-                                                        <!-- Inside lines -->
-                                                        <line x1="10" y1="11" x2="10"
-                                                            y2="17" />
-                                                        <line x1="14" y1="11" x2="14"
-                                                            y2="17" />
-                                                    </svg>
+                                                <button type="button" class="adm-icon-btn adm-danger js-delete-restaurant"
+                                                    title="{{ __('admin.dashboard.delete_restaurant') }}" aria-label="{{ __('admin.dashboard.delete_restaurant') }}"
+                                                    data-url="{{ route('admin.restaurant.delete', $restaurant) }}"
+                                                    data-slug="{{ $restaurant->slug }}"
+                                                    data-name="{{ $restaurant->name }}"
+                                                    data-owner-deletable="{{ $ownerStatus === AccountCleanupService::OWNER_DELETABLE ? '1' : '0' }}"
+                                                    data-owner-note="{{ __('admin.delete_restaurant.owner_status.'.$ownerStatus, ['email' => $owner?->email]) }}">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -281,69 +223,61 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="adm-pagination">{{ $restaurants->fragment('restaurants')->links() }}</div>
                 @endif
-            </div>
+            </section>
 
-            <!-- Unpaid Subscriptions -->
-            @if ($unpaidSubscriptions->isNotEmpty())
-                <div class="card mt-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h3 class="text-2xl font-semibold text-white">Unpaid Subscriptions</h3>
-                            <p class="text-gray-400 mt-1">Restaurant owners who need to pay their subscription</p>
-                        </div>
+            {{-- Subscriptions needing payment --}}
+            <section class="adm-card" id="due-subscriptions">
+                <div class="adm-card-head">
+                    <div>
+                        <h3 class="adm-card-title">{{ __('admin.due_section.title') }}</h3>
+                        <p class="adm-muted adm-small">{{ __('admin.due_section.subtitle') }}</p>
                     </div>
+                </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
+                @if ($dueSubscriptions->isEmpty())
+                    <p class="adm-empty">{{ __('admin.due_section.empty') }}</p>
+                @else
+                    <div class="adm-table-wrap">
+                        <table class="adm-table">
                             <thead>
-                                <tr class="border-b border-gray-600">
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Owner</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Amount</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Status</th>
-                                    <th class="text-left py-4 px-4 text-gray-300 font-semibold">Actions</th>
+                                <tr>
+                                    <th>{{ __('admin.due_section.owner') }}</th>
+                                    <th>{{ __('admin.due_section.amount') }}</th>
+                                    <th>{{ __('admin.due_section.due') }}</th>
+                                    <th>{{ __('admin.common.status') }}</th>
+                                    <th>{{ __('admin.due_section.restaurants') }}</th>
+                                    <th>{{ __('admin.common.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($unpaidSubscriptions as $subscription)
-                                    <tr class="table-row">
-                                        <td class="py-4 px-4">
-                                            <div class="text-white font-medium">{{ $subscription->user->name }}</div>
-                                            <div class="text-gray-400 text-sm">{{ $subscription->user->email }}</div>
+                                @foreach ($dueSubscriptions as $subscription)
+                                    @php $state = SubscriptionState::for($subscription); @endphp
+                                    <tr data-subscription="{{ $subscription->id }}">
+                                        <td>
+                                            <div>{{ $subscription->user->name }}</div>
+                                            <div class="adm-muted adm-small adm-ltr">{{ $subscription->user->email }}</div>
                                         </td>
-                                        <td class="py-4 px-4">
-                                            <div class="text-white font-medium">
-                                                ${{ number_format($subscription->amount, 2) }}</div>
+                                        <td class="adm-ltr">${{ number_format((float) $subscription->amount, 2) }}</td>
+                                        <td>
+                                            {{ $subscription->expires_at ? $subscription->expires_at->translatedFormat('j M Y') : __('admin.subscription.no_date') }}
+                                            <div class="adm-muted adm-small">
+                                                {{ $subscription->paid_at ? __('admin.subscription.last_paid', ['date' => $subscription->paid_at->translatedFormat('j M Y')]) : __('admin.subscription.never_paid') }}
+                                            </div>
                                         </td>
-                                        <td class="py-4 px-4">
-                                            <span class="status-badge status-inactive">
-                                                <i class="fas fa-exclamation-triangle mr-2"></i>
-                                                {{ $subscription->paid_at ? 'Expired' : 'Unpaid' }}
-                                            </span>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="flex items-center space-x-2">
-                                                <a href="{{ route('admin.subscription.edit', $subscription) }}"
-                                                    class="action-btn action-edit" title="Edit Cost">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
+                                        <td><span class="adm-badge {{ $badgeFor[$state] }}">{{ __('admin.subscription.status.'.$state) }}</span></td>
+                                        <td>{{ $subscription->user->restaurants_count }}</td>
+                                        <td>
+                                            <div class="adm-icon-actions">
+                                                <a href="{{ route('admin.subscription.edit', $subscription) }}" class="adm-icon-btn adm-warn"
+                                                    title="{{ __('admin.subscription.edit') }}" aria-label="{{ __('admin.subscription.edit') }}">
+                                                    <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form
-                                                    action="{{ route('admin.subscription.mark-paid', $subscription) }}"
-                                                    method="POST" class="inline">
+                                                <form method="POST" action="{{ route('admin.subscription.mark-paid', $subscription) }}">
                                                     @csrf
-                                                    <button type="submit" class="action-btn action-enable"
-                                                        title="Mark as Paid">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor"
-                                                            class="w-5 h-5">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2" d="M5 13l4 4L19 7" />
-                                                        </svg>
+                                                    <button type="submit" class="adm-btn adm-btn-primary adm-btn-sm">
+                                                        <i class="fas fa-check adm-icon-gap"></i>{{ __('admin.subscription.mark_paid') }}
                                                     </button>
                                                 </form>
                                             </div>
@@ -353,404 +287,301 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-            @endif
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
-                <h3 class="text-2xl font-bold text-white mb-2">{{ __('messages.delete_restaurant_title') }}</h3>
-                <p class="text-gray-300">{{ __('messages.action_cannot_be_undone') }}</p>
-            </div>
-
-            <div class="modal-body">
-                <div class="warning-box">
-                    <div class="flex items-start space-x-3">
-                        <i class="fas fa-exclamation-circle text-red-400 text-lg mt-1"></i>
-                        <div>
-                            <p class="text-gray-300 font-medium mb-2">{{ __('messages.following_will_be_deleted') }}
-                            </p>
-                            <ul class="text-gray-400 space-y-1 text-sm">
-                                <li>• {{ __('messages.restaurant_profile_settings') }}</li>
-                                <li>• {{ __('messages.all_menu_categories_items') }}</li>
-                                <li>• {{ __('messages.all_uploaded_images') }}</li>
-                                <li>• {{ __('messages.all_associated_data') }}</li>
-                            </ul>
-                        </div>
+                    <div class="adm-pagination">{{ $dueSubscriptions->fragment('due-subscriptions')->links() }}</div>
+                @endif
+            </section>
+            {{-- Accounts without restaurants --}}
+            <section class="adm-card" id="unused-accounts">
+                <div class="adm-card-head">
+                    <div>
+                        <h3 class="adm-card-title">{{ __('admin.unused_section.title') }}</h3>
+                        <p class="adm-muted adm-small">{{ __('admin.unused_section.subtitle') }}</p>
                     </div>
                 </div>
 
-                <p class="text-gray-300 mt-6">
-                    {{ __('messages.confirm_delete_restaurant') }} <strong><span
-                            id="restaurant-name"></span></strong>.
-                </p>
+                @if ($unusedAccounts->isEmpty())
+                    <p class="adm-empty">{{ __('admin.unused_section.empty') }}</p>
+                @else
+                    <div class="adm-table-wrap">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('admin.unused_section.account') }}</th>
+                                    <th>{{ __('admin.unused_section.role') }}</th>
+                                    <th>{{ __('admin.unused_section.created') }}</th>
+                                    <th>{{ __('admin.unused_section.subscription') }}</th>
+                                    <th>{{ __('admin.common.actions') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($unusedAccounts as $account)
+                                    @php $accountState = SubscriptionState::for($account->subscriptions->first()); @endphp
+                                    <tr data-account="{{ $account->id }}">
+                                        <td>
+                                            <div>{{ $account->name }}</div>
+                                            <div class="adm-muted adm-small adm-ltr">{{ $account->email }}</div>
+                                        </td>
+                                        <td>{{ __('admin.roles.'.($account->role ?: 'user')) }}</td>
+                                        <td>{{ $account->created_at?->translatedFormat('j M Y') }}</td>
+                                        <td>
+                                            @if ($accountState)
+                                                <span class="adm-badge {{ $badgeFor[$accountState] }}">{{ __('admin.subscription.status.'.$accountState) }}</span>
+                                            @else
+                                                <span class="adm-badge adm-badge-gray">{{ __('admin.subscription.status.none') }}</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div class="adm-icon-actions">
+                                                <a href="{{ route('admin.user.edit', $account) }}" class="adm-icon-btn"
+                                                    title="{{ __('admin.dashboard.edit_owner') }}" aria-label="{{ __('admin.dashboard.edit_owner') }}">
+                                                    <i class="fas fa-user-edit"></i>
+                                                </a>
+                                                @if ($account->id === auth()->id())
+                                                    <span class="adm-muted adm-small">{{ __('admin.unused_section.self') }}</span>
+                                                @else
+                                                    <button type="button" class="adm-btn adm-btn-danger adm-btn-sm js-delete-account"
+                                                        data-url="{{ route('admin.user.destroy', $account) }}"
+                                                        data-id="{{ $account->id }}"
+                                                        data-email="{{ $account->email }}"
+                                                        data-explain="{{ __('admin.delete_account.explain', ['email' => $account->email]) }}">
+                                                        <i class="fas fa-user-times adm-icon-gap"></i>{{ __('admin.unused_section.delete') }}
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="adm-pagination">{{ $unusedAccounts->fragment('unused-accounts')->links() }}</div>
+                @endif
+            </section>
+        </div>
+    </div>
 
-                <div class="mt-4">
-                    <label for="confirm-name-input" class="block text-sm font-medium text-gray-300 mb-2">
-                        {{ __('messages.type_restaurant_name_to_confirm') }}
-                    </label>
-                    <input type="text" id="confirm-name-input" name="confirm_name" autocomplete="off"
-                        class="w-full rounded-md border border-gray-600 bg-gray-700 text-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                        placeholder="{{ __('messages.restaurant_name_placeholder') }}">
-                    <p id="confirm-name-error" class="text-red-400 text-xs mt-1 hidden">
-                        {{ __('messages.name_does_not_match') }}
-                    </p>
+    {{-- Delete restaurant modal --}}
+    <div id="delete-restaurant-modal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-restaurant-title">
+        <div class="adm-modal-box">
+            <form id="delete-restaurant-form" method="POST" action="">
+                @csrf
+                @method('DELETE')
+                <input type="hidden" name="delete_target" id="dr-target">
+                <input type="hidden" name="delete_target_name" id="dr-name-hidden">
+                <input type="hidden" name="delete_target_owner_note" id="dr-owner-note-hidden">
+                <input type="hidden" name="delete_target_owner_deletable" id="dr-owner-deletable">
+
+                <div class="adm-modal-head">
+                    <h3 id="delete-restaurant-title" class="adm-card-title">
+                        <i class="fas fa-exclamation-triangle adm-icon-gap" style="color: #ef4444;"></i>{{ __('admin.delete_restaurant.title') }}: <span id="dr-name"></span>
+                    </h3>
+                    <p class="adm-muted">{{ __('admin.delete_restaurant.irreversible') }}</p>
                 </div>
-            </div>
+                <div class="adm-modal-body">
+                    <div class="adm-warning-box">
+                        <p class="adm-strong">{{ __('admin.delete_restaurant.will_delete') }}</p>
+                        <ul>
+                            <li>{{ __('admin.delete_restaurant.item_profile') }}</li>
+                            <li>{{ __('admin.delete_restaurant.item_menu') }}</li>
+                            <li>{{ __('admin.delete_restaurant.item_media') }}</li>
+                        </ul>
+                    </div>
 
-            <div class="modal-footer">
-                <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">
-                    <i class="fas fa-times mr-2"></i>
-                    {{ __('messages.cancel') }}
-                </button>
-                <form id="delete-form" method="POST" class="inline" onsubmit="return validateDeleteForm(event)">
-                    @csrf
-                    @method('DELETE')
-                    <input type="hidden" id="delete-confirm-name-hidden" name="confirm_name" value="">
-                    <button type="submit" id="delete-submit-btn" class="btn btn-danger" disabled>
-                        <i class="fas fa-trash mr-2"></i>
-                        {{ __('messages.delete_restaurant') }}
+                    <input type="hidden" name="delete_owner" value="0">
+                    <label class="adm-check">
+                        <input type="checkbox" name="delete_owner" value="1" id="dr-delete-owner" checked>
+                        <span>
+                            <span class="adm-strong">{{ __('admin.delete_restaurant.delete_owner_label') }}</span>
+                            <span class="adm-help" style="display: block;">{{ __('admin.delete_restaurant.delete_owner_help') }}</span>
+                        </span>
+                    </label>
+                    <p id="dr-owner-note" class="adm-owner-note" aria-live="polite"></p>
+
+                    <div class="adm-field">
+                        <label for="dr-confirm" class="adm-label">{{ __('admin.delete_restaurant.type_name') }}</label>
+                        <input type="text" id="dr-confirm" name="confirm_name" autocomplete="off" class="adm-input"
+                            placeholder="{{ __('admin.delete_restaurant.name_placeholder') }}"
+                            @if ($restaurantDeletionErrors->has('confirm_name')) aria-invalid="true" @endif>
+                        <p id="dr-confirm-error" class="adm-field-error" @unless ($restaurantDeletionErrors->any()) hidden @endunless>
+                            {{ $restaurantDeletionErrors->first() ?: __('admin.delete_restaurant.name_mismatch') }}
+                        </p>
+                    </div>
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-secondary js-close-modal">{{ __('admin.common.cancel') }}</button>
+                    <button type="submit" id="dr-submit" class="adm-btn adm-btn-danger" disabled>
+                        <i class="fas fa-trash adm-icon-gap"></i>{{ __('admin.delete_restaurant.submit') }}
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Delete unused account modal --}}
+    <div id="delete-account-modal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+        <div class="adm-modal-box">
+            <form id="delete-account-form" method="POST" action="">
+                @csrf
+                @method('DELETE')
+                <input type="hidden" name="delete_account_id" id="da-id">
+                <input type="hidden" name="delete_account_email" id="da-email-hidden">
+                <input type="hidden" name="delete_account_explain" id="da-explain-hidden">
+                <div class="adm-modal-head">
+                    <h3 id="delete-account-title" class="adm-card-title">
+                        <i class="fas fa-user-times adm-icon-gap" style="color: #ef4444;"></i>{{ __('admin.delete_account.title') }}
+                    </h3>
+                </div>
+                <div class="adm-modal-body">
+                    <div class="adm-warning-box"><p id="da-explain"></p></div>
+                    <div class="adm-field">
+                        <label for="da-confirm" class="adm-label">{{ __('admin.delete_account.type_email') }} <span id="da-email" class="adm-code adm-ltr"></span></label>
+                        <input type="text" id="da-confirm" name="confirm_email" autocomplete="off" class="adm-input adm-input-ltr"
+                            @if ($accountDeletionErrors->has('confirm_email')) aria-invalid="true" @endif>
+                        <p id="da-confirm-error" class="adm-field-error" @unless ($accountDeletionErrors->has('confirm_email')) hidden @endunless>
+                            {{ $accountDeletionErrors->first('confirm_email') ?: __('admin.delete_account.email_mismatch') }}
+                        </p>
+                    </div>
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-secondary js-close-modal">{{ __('admin.common.cancel') }}</button>
+                    <button type="submit" id="da-submit" class="adm-btn adm-btn-danger" disabled>
+                        <i class="fas fa-trash adm-icon-gap"></i>{{ __('admin.delete_account.submit') }}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
-        let currentRestaurantName = '';
+        (function () {
+            const byId = (id) => document.getElementById(id);
+            const drModal = byId('delete-restaurant-modal');
+            const daModal = byId('delete-account-modal');
+            const nameMismatch = @js(__('admin.delete_restaurant.name_mismatch'));
+            const emailMismatch = @js(__('admin.delete_account.email_mismatch'));
+            let expectedName = '';
+            let expectedEmail = '';
 
-        function confirmDelete(deleteUrl, restaurantName) {
-            currentRestaurantName = restaurantName;
-            document.getElementById('restaurant-name').textContent = restaurantName;
-            document.getElementById('delete-form').action = deleteUrl;
-            document.getElementById('confirm-name-input').value = '';
-            document.getElementById('confirm-name-error').classList.add('hidden');
-            document.getElementById('delete-submit-btn').disabled = true;
-            document.getElementById('delete-modal').classList.remove('hidden');
-            document.getElementById('delete-modal').style.display = 'flex';
-            setTimeout(() => document.getElementById('confirm-name-input').focus(), 100);
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('delete-modal').classList.add('hidden');
-            document.getElementById('delete-modal').style.display = 'none';
-            document.getElementById('confirm-name-input').value = '';
-            document.getElementById('confirm-name-error').classList.add('hidden');
-            document.getElementById('delete-submit-btn').disabled = true;
-        }
-
-        document.getElementById('confirm-name-input').addEventListener('input', function() {
-            const match = this.value === currentRestaurantName;
-            document.getElementById('delete-submit-btn').disabled = !match;
-            document.getElementById('delete-confirm-name-hidden').value = this.value;
-            if (this.value.length > 0 && !match) {
-                document.getElementById('confirm-name-error').classList.remove('hidden');
-            } else {
-                document.getElementById('confirm-name-error').classList.add('hidden');
+            function closeModals() {
+                drModal.classList.remove('is-open');
+                daModal.classList.remove('is-open');
             }
-        });
 
-        function validateDeleteForm(e) {
-            if (document.getElementById('confirm-name-input').value !== currentRestaurantName) {
-                e.preventDefault();
-                document.getElementById('confirm-name-error').classList.remove('hidden');
-                return false;
+            function updateOwnerNote() {
+                const deleting = byId('dr-delete-owner').checked;
+                byId('dr-owner-note').className = 'adm-owner-note ' + (deleting ? 'adm-owner-note-delete' : 'adm-owner-note-keep');
             }
-            return true;
-        }
 
-        // Close modal when clicking outside
-        document.getElementById('delete-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeDeleteModal();
+            function syncRestaurantSubmit() {
+                const value = byId('dr-confirm').value;
+                const match = value === expectedName;
+                byId('dr-submit').disabled = !match;
+                const error = byId('dr-confirm-error');
+                if (value.length > 0 && !match) {
+                    error.textContent = nameMismatch;
+                    error.hidden = false;
+                } else if (match) {
+                    error.hidden = true;
+                }
             }
-        });
 
-        // Close modal on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeDeleteModal();
+            function openRestaurantModal(data, showServerError) {
+                expectedName = data.name;
+                byId('delete-restaurant-form').action = data.url;
+                byId('dr-target').value = data.slug;
+                byId('dr-name').textContent = data.name;
+                byId('dr-name-hidden').value = data.name;
+                byId('dr-owner-note-hidden').value = data.ownerNote;
+                byId('dr-owner-deletable').value = data.ownerDeletable ? '1' : '0';
+                byId('dr-owner-note').textContent = data.ownerNote;
+
+                const checkbox = byId('dr-delete-owner');
+                checkbox.disabled = !data.ownerDeletable;
+                checkbox.checked = data.ownerDeletable && data.deleteOwner;
+                updateOwnerNote();
+
+                byId('dr-confirm').value = '';
+                byId('dr-confirm-error').hidden = !showServerError;
+                syncRestaurantSubmit();
+                drModal.classList.add('is-open');
+                setTimeout(() => byId('dr-confirm').focus(), 50);
             }
-        });
+
+            function syncAccountSubmit() {
+                const value = byId('da-confirm').value.trim().toLowerCase();
+                const match = value === expectedEmail;
+                byId('da-submit').disabled = !match;
+                const error = byId('da-confirm-error');
+                if (value.length > 0 && !match) {
+                    error.textContent = emailMismatch;
+                    error.hidden = false;
+                } else if (match) {
+                    error.hidden = true;
+                }
+            }
+
+            function openAccountModal(data, showServerError) {
+                expectedEmail = String(data.email).toLowerCase();
+                byId('delete-account-form').action = data.url;
+                byId('da-id').value = data.id;
+                byId('da-email').textContent = data.email;
+                byId('da-email-hidden').value = data.email;
+                byId('da-explain').textContent = data.explain;
+                byId('da-explain-hidden').value = data.explain;
+                byId('da-confirm').value = '';
+                byId('da-confirm-error').hidden = !showServerError;
+                syncAccountSubmit();
+                daModal.classList.add('is-open');
+                setTimeout(() => byId('da-confirm').focus(), 50);
+            }
+
+            document.querySelectorAll('.js-delete-restaurant').forEach((btn) => {
+                btn.addEventListener('click', () => openRestaurantModal({
+                    url: btn.dataset.url,
+                    slug: btn.dataset.slug,
+                    name: btn.dataset.name,
+                    ownerNote: btn.dataset.ownerNote,
+                    ownerDeletable: btn.dataset.ownerDeletable === '1',
+                    deleteOwner: true,
+                }, false));
+            });
+
+            document.querySelectorAll('.js-delete-account').forEach((btn) => {
+                btn.addEventListener('click', () => openAccountModal({
+                    url: btn.dataset.url,
+                    id: btn.dataset.id,
+                    email: btn.dataset.email,
+                    explain: btn.dataset.explain,
+                }, false));
+            });
+
+            byId('dr-confirm').addEventListener('input', syncRestaurantSubmit);
+            byId('dr-delete-owner').addEventListener('change', updateOwnerNote);
+            byId('da-confirm').addEventListener('input', syncAccountSubmit);
+            document.querySelectorAll('.js-close-modal').forEach((b) => b.addEventListener('click', closeModals));
+            [drModal, daModal].forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) closeModals(); }));
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModals(); });
+
+            @if ($restaurantDeletionErrors->any() && is_string(old('delete_target')) && old('delete_target') !== '')
+                // Re-open after a failed confirmation, preserving the owner-deletion choice.
+                openRestaurantModal({
+                    url: @js(route('admin.restaurant.delete', ['restaurant' => old('delete_target')])),
+                    slug: @js(old('delete_target')),
+                    name: @js(old('delete_target_name')),
+                    ownerNote: @js(old('delete_target_owner_note')),
+                    ownerDeletable: @js(old('delete_target_owner_deletable') === '1'),
+                    deleteOwner: @js(old('delete_owner') === '1'),
+                }, true);
+            @endif
+
+            @if ($accountDeletionErrors->any() && ctype_digit((string) old('delete_account_id')))
+                openAccountModal({
+                    url: @js(route('admin.user.destroy', ['user' => (int) old('delete_account_id')])),
+                    id: @js((string) old('delete_account_id')),
+                    email: @js(old('delete_account_email')),
+                    explain: @js(old('delete_account_explain')),
+                }, true);
+            @endif
+        })();
     </script>
-
-    <!-- Include your existing CSS styles here -->
-    <style>
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-xl);
-            padding: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--primary-gradient);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--border-secondary);
-        }
-
-        .stat-icon {
-            width: 4rem;
-            height: 4rem;
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .stat-content {
-            flex: 1;
-        }
-
-        .restaurant-avatar {
-            width: 3.5rem;
-            height: 3.5rem;
-            border-radius: 50%;
-            object-fit: contain;
-            border: 2px solid var(--border-secondary);
-            box-shadow: var(--shadow-md);
-        }
-
-        .restaurant-avatar-placeholder {
-            width: 3.5rem;
-            height: 3.5rem;
-            border-radius: 50%;
-            background: var(--primary-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid var(--border-secondary);
-            box-shadow: var(--shadow-md);
-        }
-
-        .url-badge {
-            background: var(--bg-tertiary);
-            color: var(--text-secondary);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-lg);
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.875rem;
-            border: 1px solid var(--border-primary);
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .status-active {
-            background: rgba(34, 197, 94, 0.1);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-
-        .status-inactive {
-            background: rgba(239, 68, 68, 0.1);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .action-btn {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        .action-view {
-            background: rgba(59, 130, 246, 0.1);
-            color: #60a5fa;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-
-        .action-view:hover {
-            background: rgba(59, 130, 246, 0.2);
-            transform: scale(1.1);
-        }
-
-        .action-edit {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        .action-edit:hover {
-            background: rgba(245, 158, 11, 0.2);
-            transform: scale(1.1);
-        }
-
-        .action-edit-user {
-            background: rgba(147, 51, 234, 0.1);
-            color: #a855f7;
-            border: 1px solid rgba(147, 51, 234, 0.3);
-        }
-
-        .action-edit-user:hover {
-            background: rgba(147, 51, 234, 0.2);
-            transform: scale(1.1);
-        }
-
-        .action-enable {
-            background: rgba(34, 197, 94, 0.1);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-
-        .action-enable:hover {
-            background: rgba(34, 197, 94, 0.2);
-            transform: scale(1.1);
-        }
-
-        .action-disable {
-            background: rgba(239, 68, 68, 0.1);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .action-disable:hover {
-            background: rgba(239, 68, 68, 0.2);
-            transform: scale(1.1);
-        }
-
-        .action-delete {
-            background: rgba(220, 38, 38, 0.1);
-            color: #f87171;
-            border: 1px solid rgba(220, 38, 38, 0.3);
-        }
-
-        .action-delete:hover {
-            background: rgba(220, 38, 38, 0.2);
-            transform: scale(1.1);
-        }
-
-        .table-row {
-            border-bottom: 1px solid var(--border-primary);
-            transition: all 0.3s ease;
-        }
-
-        .table-row:hover {
-            background: var(--bg-elevated);
-            transform: translateX(4px);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .empty-state-icon {
-            margin-bottom: 2rem;
-            opacity: 0.6;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .modal-overlay.hidden {
-            display: none;
-        }
-
-        .modal-content {
-            background: var(--bg-card);
-            border: 1px solid var(--border-secondary);
-            border-radius: var(--radius-xl);
-            padding: 0;
-            max-width: 500px;
-            width: 100%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95) translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        .modal-header {
-            text-align: center;
-            padding: 2rem 2rem 1rem;
-        }
-
-        .modal-body {
-            padding: 0 2rem 1rem;
-        }
-
-        .modal-footer {
-            padding: 2rem;
-            border-top: 1px solid var(--border-primary);
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-
-        .warning-box {
-            background: rgba(220, 38, 38, 0.05);
-            border: 1px solid rgba(220, 38, 38, 0.2);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            color: white;
-            border: 1px solid #dc2626;
-        }
-
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #b91c1c, #991b1b);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
-        }
-    </style>
 </x-app-layout>

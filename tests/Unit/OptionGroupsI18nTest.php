@@ -100,3 +100,36 @@ test('validation messages expose placeholders we pass at runtime', function () {
     expect($en['errors']['max_exceeds_options'])->toContain(':count');
     expect($ar['errors']['max_exceeds_options'])->toContain(':count');
 });
+
+test('bilingual studio translations have complete Arabic and English coverage', function () {
+    $en = require __DIR__.'/../../resources/lang/en/studio.php';
+    $ar = require __DIR__.'/../../resources/lang/ar/studio.php';
+
+    expect(array_keys($ar))->toBe(array_keys($en));
+    foreach ($ar as $key => $value) {
+        expect($value)->not->toBeEmpty();
+        assertTrue(preg_match('/\p{Arabic}/u', $value) === 1, "studio.$key must contain Arabic");
+    }
+});
+
+test('bilingual option names and notes prefer supplied English and otherwise preserve Arabic', function () {
+    $group = new \App\Models\MenuItemOptionGroup(['group_name_ar' => 'الحجم', 'group_name_en' => 'Size']);
+    $option = new \App\Models\MenuItemOption([
+        'option_name_ar' => 'كبير', 'option_name_en' => 'Large',
+        'option_note_ar' => 'للمشاركة', 'option_note_en' => 'For sharing',
+    ]);
+
+    expect($group->nameFor('en'))->toBe('Size')
+        ->and($group->nameFor('ar'))->toBe('الحجم')
+        ->and($option->nameFor('en'))->toBe('Large')
+        ->and($option->nameFor('ar'))->toBe('كبير')
+        ->and($option->noteFor('en'))->toBe('For sharing')
+        ->and($option->noteFor('ar'))->toBe('للمشاركة');
+
+    $group->group_name_en = '';
+    $option->option_name_en = null;
+    $option->option_note_en = '';
+    expect($group->nameFor('en'))->toBe('الحجم')
+        ->and($option->nameFor('en'))->toBe('كبير')
+        ->and($option->noteFor('en'))->toBe('للمشاركة');
+});

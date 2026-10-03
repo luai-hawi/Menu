@@ -29,24 +29,35 @@
                     @csrf
                     <div class="space-y-6">
                         <div class="form-group">
-                            <label for="name" class="form-label">{{ __('messages.restaurant_name') }} *</label>
+                            <label for="name" class="form-label">{{ __('studio.name_ar') }} *</label>
                             <input type="text" id="name" name="name"
                                    value="{{ old('name') }}"
                                    placeholder="{{ __('messages.enter_restaurant_name') }}"
-                                   class="w-full" required>
+                                   class="w-full" required dir="rtl" maxlength="255">
+                        </div>
+                        <div class="form-group">
+                            <label for="name_en" class="form-label">{{ __('studio.name_en') }}</label>
+                            <input type="text" id="name_en" name="name_en" value="{{ old('name_en') }}"
+                                   class="w-full" dir="ltr" maxlength="255">
+                            <p class="text-gray-400 text-sm mt-2">{{ __('studio.english_fallback') }}</p>
                         </div>
 
                         <div class="form-group">
-                            <label for="description" class="form-label">{{ __('messages.restaurant_description') }}</label>
+                            <label for="description" class="form-label">{{ __('studio.description_ar') }}</label>
                             <textarea id="description" name="description" rows="4"
                                       placeholder="{{ __('messages.describe_restaurant_optional') }}"
-                                      class="w-full">{{ old('description') }}</textarea>
+                                      class="w-full" dir="rtl" maxlength="1000">{{ old('description') }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="description_en" class="form-label">{{ __('studio.description_en') }}</label>
+                            <textarea id="description_en" name="description_en" rows="4" class="w-full"
+                                      dir="ltr" maxlength="1000">{{ old('description_en') }}</textarea>
                         </div>
 
                         <div class="form-group">
                             <label for="logo" class="form-label">{{ __('messages.restaurant_logo') }}</label>
-                            <input type="file" id="logo" name="logo" accept="image/*" class="w-full">
-                            <p class="text-gray-400 text-sm mt-2">{{ __('messages.upload_logo_instructions') }}</p>
+                            <input type="file" id="logo" name="logo" accept="image/jpeg,image/png,image/webp" class="w-full">
+                            <p class="text-gray-400 text-sm mt-2">{{ __('studio.image_help') }}</p>
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-4">
