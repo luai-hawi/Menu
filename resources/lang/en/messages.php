@@ -442,6 +442,52 @@ return [
         'network_error' => 'Network error. Please check your connection and try again.',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Currency
+    |--------------------------------------------------------------------------
+    | Owner-selected currency for menu prices. `names.*` labels the dropdown
+    | options and is keyed by the ISO 4217 code held in config/currency.php.
+    */
+    'currency' => [
+        'title' => 'Currency',
+        'label' => 'Currency',
+        'help' => 'The symbol shown beside every price on your public menu.',
+        'position_label' => 'Symbol position',
+        'position_before' => 'Before the price ($12.00)',
+        'position_after' => 'After the price (12.00 $)',
+        'preview' => 'Preview',
+        'save' => 'Save currency',
+        'names' => [
+            'ILS' => 'Israeli Shekel',
+            'AED' => 'UAE Dirham',
+            'SAR' => 'Saudi Riyal',
+            'QAR' => 'Qatari Riyal',
+            'KWD' => 'Kuwaiti Dinar',
+            'BHD' => 'Bahraini Dinar',
+            'OMR' => 'Omani Rial',
+            'JOD' => 'Jordanian Dinar',
+            'EGP' => 'Egyptian Pound',
+            'LBP' => 'Lebanese Pound',
+            'SYP' => 'Syrian Pound',
+            'YER' => 'Yemeni Rial',
+            'IQD' => 'Iraqi Dinar',
+            'MAD' => 'Moroccan Dirham',
+            'USD' => 'US Dollar',
+            'EUR' => 'Euro',
+            'GBP' => 'British Pound',
+            'CAD' => 'Canadian Dollar',
+            'AUD' => 'Australian Dollar',
+            'CHF' => 'Swiss Franc',
+            'TRY' => 'Turkish Lira',
+            'RUB' => 'Russian Ruble',
+            'JPY' => 'Japanese Yen',
+            'CNY' => 'Chinese Yuan',
+            'INR' => 'Indian Rupee',
+            'ZAR' => 'South African Rand',
+        ],
+    ],
+
     // ─────────────────────────────────────────────
     //  THEME COLOR CONTROLS
     // ─────────────────────────────────────────────

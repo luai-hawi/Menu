@@ -4,6 +4,7 @@
 
 namespace App\Models;
 
+use App\Services\Currency;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -35,6 +36,8 @@ class Restaurant extends Model
         'twitter_url',
         'tiktok_url',
         'theme_colors',
+        'currency',
+        'currency_position',
     ];
 
     protected $casts = [
@@ -63,6 +66,29 @@ class Restaurant extends Model
     public function welcomeMessageFor(?string $locale = null): ?string
     {
         return ($locale ?? app()->getLocale()) === 'en' && filled($this->welcome_message_en) ? $this->welcome_message_en : $this->welcome_message;
+    }
+
+    public function currencyCode(): string
+    {
+        return (string) ($this->currency ?: config('currency.default'));
+    }
+
+    public function currencySymbol(): string
+    {
+        return app(Currency::class)->symbol($this->currencyCode());
+    }
+
+    public function currencyPosition(): string
+    {
+        return app(Currency::class)->position($this->currencyCode(), $this->currency_position);
+    }
+
+    /**
+     * Render a price with this restaurant's currency, e.g. "$12.00".
+     */
+    public function formatPrice(mixed $amount): string
+    {
+        return app(Currency::class)->format($amount, $this->currencyCode(), $this->currency_position);
     }
 
     public function user()

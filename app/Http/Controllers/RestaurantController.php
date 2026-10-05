@@ -7,6 +7,7 @@ use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\MenuItemOptionGroup;
 use App\Models\Restaurant;
+use App\Services\Currency;
 use App\Services\ImageService;
 use App\Services\VideoService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class RestaurantController extends Controller
 {
@@ -109,7 +111,10 @@ class RestaurantController extends Controller
 
         $videoAvailable = $this->videoService->available();
 
-        return view('restaurant.dashboard', compact('restaurant', 'categories', 'restaurants', 'videoAvailable'));
+        return view('restaurant.dashboard', array_merge(
+            compact('restaurant', 'categories', 'restaurants', 'videoAvailable'),
+            ['currencies' => app(Currency::class)->options()],
+        ));
     }
 
     public function create()
@@ -586,6 +591,8 @@ class RestaurantController extends Controller
             'whatsapp_url' => 'nullable|url',
             'twitter_url' => 'nullable|url',
             'tiktok_url' => 'nullable|url',
+            'currency' => ['nullable', Rule::in(app(Currency::class)->codes())],
+            'currency_position' => ['nullable', Rule::in(['before', 'after'])],
             // ── New comprehensive color tokens ──
             'page_bg' => $colorRule,
             'page_bg_2' => $colorRule,
@@ -694,10 +701,18 @@ class RestaurantController extends Controller
             'theme_colors' => $mergedColors,
         ];
         foreach (['facebook_url', 'instagram_url', 'snapchat_url', 'whatsapp_url', 'twitter_url', 'tiktok_url',
-            'welcome_title', 'welcome_title_en', 'welcome_message', 'welcome_message_en'] as $field) {
+            'welcome_title', 'welcome_title_en', 'welcome_message', 'welcome_message_en',
+            'currency', 'currency_position'] as $field) {
             if ($request->exists($field)) {
                 $updateData[$field] = $request->input($field);
             }
+        }
+
+        // A currency switch without an explicit position should adopt the new
+        // currency's own convention rather than inherit the previous one.
+        if ($request->exists('currency') && ! $request->exists('currency_position')
+            && $request->input('currency') !== $restaurant->currency) {
+            $updateData['currency_position'] = app(Currency::class)->position($request->input('currency'));
         }
 
         // Validate/process video before images so a rejected video cannot orphan an image.

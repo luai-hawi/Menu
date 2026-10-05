@@ -13,6 +13,7 @@
     $groups      = $groups      ?? [];
     $fieldPrefix = $fieldPrefix ?? 'option_groups';
     $listenForEdit = $listenForEdit ?? false;
+    $currencySymbol = ($restaurant ?? null)?->currencySymbol() ?? __('messages.currency_symbol');
 @endphp
 
 <div
@@ -198,7 +199,7 @@
                                                x-model.number="opt.price_delta"
                                                placeholder="0.00"
                                                class="og-input og-input-sm">
-                                        <span class="og-price-hint">{{ __('messages.currency_symbol') }}</span>
+                                        <span class="og-price-hint">{{ $currencySymbol }}</span>
                                     </div>
 
                                     <div class="og-option-actions">

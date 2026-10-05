@@ -135,8 +135,11 @@
                             <div class="dash-field-row">
                                 <div class="dash-field" style="flex:2">
                                     <label class="dash-label">{{ __('messages.price') }}</label>
-                                    <input type="number" step="0.01" min="0" name="price"
-                                        class="dash-input" required placeholder="0.00">
+                                    <div class="dash-price-input">
+                                        <input type="number" step="0.01" min="0" name="price"
+                                            class="dash-input" required placeholder="0.00">
+                                        <span class="dash-price-hint">{{ $restaurant->currencySymbol() }}</span>
+                                    </div>
                                 </div>
                                 <div class="dash-field" style="flex:3">
                                     <label class="dash-label">{{ __('messages.item_image_optional') }}</label>
@@ -304,7 +307,7 @@
                                                         <p class="dash-item-desc">{{ $item->description }}</p>
                                                     @endif
                                                     <div class="dash-item-price">
-                                                        {{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}
+                                                        {{ $restaurant->formatPrice($item->price) }}
                                                     </div>
 
                                                     @if ($item->optionGroups->count() > 0)
@@ -395,8 +398,11 @@
                                 <div class="dash-field-row">
                                     <div class="dash-field" style="flex:2">
                                         <label class="dash-label">{{ __('messages.price') }}</label>
-                                        <input type="number" step="0.01" min="0" name="price"
-                                            x-model="currentItem.price" class="dash-input" required>
+                                        <div class="dash-price-input">
+                                            <input type="number" step="0.01" min="0" name="price"
+                                                x-model="currentItem.price" class="dash-input" required>
+                                            <span class="dash-price-hint">{{ $restaurant->currencySymbol() }}</span>
+                                        </div>
                                     </div>
                                     <div class="dash-field" style="flex:3">
                                         <label class="dash-label">{{ __('messages.update_image_optional') }}</label>
@@ -553,6 +559,47 @@
                             @endif
                         </div>
                         <button type="submit" class="dash-btn dash-btn-primary">{{ __('studio.save_welcome') }}</button>
+                    </form>
+                </div>
+
+                {{-- Currency --}}
+                <div class="dash-card dash-card-wide"
+                    x-data="currencyPicker(@js($restaurant->currencyCode()), @js($restaurant->currency_position), @js($currencies))">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-green"><i class="fas fa-coins"></i></div>
+                        <h3>{{ __('messages.currency.title') }}</h3>
+                    </header>
+                    <form action="{{ route('restaurant.update.settings') }}" method="POST" data-ajax
+                        data-ajax-reload>
+                        @csrf
+                        <div class="dash-field-row">
+                            <div class="dash-field" style="flex:2">
+                                <label class="dash-label" for="currency">{{ __('messages.currency.label') }}</label>
+                                <select id="currency" name="currency" class="dash-input" x-model="code" required>
+                                    @foreach ($currencies as $currencyCode => $currencyOption)
+                                        <option value="{{ $currencyCode }}">{{ $currencyOption['label'] }} ({{ $currencyOption['symbol'] }})</option>
+                                    @endforeach
+                                </select>
+                                <small class="dash-help">{{ __('messages.currency.help') }}</small>
+                            </div>
+                            <div class="dash-field" style="flex:1">
+                                <label class="dash-label" for="currency_position">{{ __('messages.currency.position_label') }}</label>
+                                <select id="currency_position" name="currency_position" class="dash-input"
+                                    x-model="position">
+                                    <option value="before">{{ __('messages.currency.position_before') }}</option>
+                                    <option value="after">{{ __('messages.currency.position_after') }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="dash-currency-preview" role="status">
+                            <span>{{ __('messages.currency.preview') }}:</span>
+                            <strong x-text="format(12)"></strong>
+                            <strong class="dash-currency-preview-delta" x-text="formatDelta(2.5)"></strong>
+                        </p>
+                        <button type="submit" class="dash-btn dash-btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>{{ __('messages.currency.save') }}</span>
+                        </button>
                     </form>
                 </div>
 
@@ -1477,6 +1524,35 @@
                 },
             };
         }
+
+        /**
+         * Live preview of how the selected currency will look beside prices.
+         * `currencies` is the same map the PHP Currency service exposes, so the
+         * preview can never drift from what the public menu renders.
+         */
+        function currencyPicker(code, position, currencies) {
+            return {
+                code: code,
+                position: position,
+                currencies: currencies || {},
+
+                get symbol() {
+                    return this.currencies[this.code]?.symbol ?? '';
+                },
+
+                format(amount) {
+                    const number = Number(amount).toFixed(2);
+                    return this.position === 'after'
+                        ? `${number} ${this.symbol}`
+                        : `${this.symbol}${number}`;
+                },
+
+                formatDelta(amount) {
+                    const value = Number(amount);
+                    return `${value > 0 ? '+' : '−'}${this.format(Math.abs(value))}`;
+                },
+            };
+        }
     </script>
 
     <style>
@@ -1718,6 +1794,47 @@
 
         .dash-input-file {
             padding: 0.45rem !important;
+        }
+
+        .dash-price-input {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .dash-price-input .dash-input {
+            padding-inline-end: 2.5rem !important;
+        }
+
+        .dash-price-hint {
+            position: absolute;
+            inset-inline-end: 0.75rem;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .dash-currency-preview {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 0 0 1rem;
+            padding: 0.6rem 0.85rem;
+            border: 1px dashed #334155;
+            border-radius: 10px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .dash-currency-preview strong {
+            color: #22d3ee;
+            font-size: 0.95rem;
+        }
+
+        .dash-currency-preview .dash-currency-preview-delta {
+            color: #86efac;
         }
 
         .dash-help {

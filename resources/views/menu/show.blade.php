@@ -1168,10 +1168,10 @@
                                     <div class="menu-item-footer">
                                         <div class="price-block">
                                             @if(count($itemOptionsPayload) > 0)
-                                                <small class="base-price-label">{{ __('messages.products.base_price') }}: {{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</small>
-                                                <div class="price" x-text="currency + computedPrice.toFixed(2)"></div>
+                                                <small class="base-price-label">{{ __('messages.products.base_price') }}: {{ $restaurant->formatPrice($item->price) }}</small>
+                                                <div class="price" x-text="formatPrice(computedPrice)"></div>
                                             @else
-                                                <div class="price">{{ __('messages.currency_symbol') }}{{ number_format($item->price, 2) }}</div>
+                                                <div class="price">{{ $restaurant->formatPrice($item->price) }}</div>
                                             @endif
                                         </div>
 
@@ -1298,7 +1298,8 @@
             deliveryLocation: @js(__('messages.delivery_location')),
             additionalNotesLabel: @js(__('messages.additional_notes_label')),
             thankYou: @js(__('messages.thank_you')),
-            currencySymbol: @js(__('messages.currency_symbol')),
+            currencySymbol: @js($restaurant->currencySymbol()),
+            currencyPosition: @js($restaurant->currencyPosition()),
             required: @js(__('messages.common.required')),
             minSelections: @js(__('messages.errors.min_selections_required', ['min' => ':n'])),
             maxSelections: @js(__('messages.errors.max_selections_exceeded', ['max' => ':n'])),
@@ -1306,6 +1307,26 @@
             free: @js(__('messages.products.free')),
             locationRequired: @js(__('messages.location_required'))
         };
+
+        /**
+         * Render an amount with the owner's currency, honouring whether the
+         * symbol sits before or after the number.
+         */
+        function formatPrice(amount) {
+            const number = Number(amount).toFixed(2);
+            return translations.currencyPosition === 'after'
+                ? `${number} ${translations.currencySymbol}`
+                : `${translations.currencySymbol}${number}`;
+        }
+
+        /**
+         * Render a signed option delta, e.g. "+2.50 $". The sign always leads
+         * so it stays readable in both RTL and LTR layouts.
+         */
+        function formatPriceDelta(delta) {
+            const value = Number(delta);
+            return `${value > 0 ? '+' : '−'}${formatPrice(Math.abs(value))}`;
+        }
 
         // Global cart store on window so all menuItemCard instances share state.
         window.__menuCart = window.__menuCart || {};
@@ -1359,7 +1380,6 @@
                 name,
                 basePrice: Number(basePrice),
                 groups: groups || [],
-                currency: translations.currencySymbol,
                 // Selected option IDs per group id
                 selected: {},
                 quantity: 0,
@@ -1410,8 +1430,7 @@
                 formatDelta(delta) {
                     const n = Number(delta);
                     if (n === 0) return translations.free;
-                    const sign = n > 0 ? '+' : '−';
-                    return `${sign}${this.currency}${Math.abs(n).toFixed(2)}`;
+                    return formatPriceDelta(n);
                 },
 
                 isSelected(group, opt) {
@@ -1559,17 +1578,17 @@
             Object.values(cart).forEach(item => {
                 const optsText = item.options.length
                     ? '<div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 0.25rem;">'
-                        + item.options.map(o => `• ${escapeHtml(o.group)}: ${escapeHtml(o.name)}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${escapeHtml(translations.currencySymbol)}${Math.abs(o.delta).toFixed(2)})` : ''}`).join('<br>')
+                        + item.options.map(o => `• ${escapeHtml(o.group)}: ${escapeHtml(o.name)}${o.delta ? ` (${escapeHtml(formatPriceDelta(o.delta))})` : ''}`).join('<br>')
                         + '</div>'
                     : '';
                 html += `
                     <div class="order-item">
                         <div>
                             <div style="font-weight:600; color: var(--color-text-primary);">${escapeHtml(item.name)}</div>
-                            <div style="color: var(--color-text-muted); font-size:0.875rem;">${translations.currencySymbol}${item.unitPrice.toFixed(2)} x ${item.quantity}</div>
+                            <div style="color: var(--color-text-muted); font-size:0.875rem;">${escapeHtml(formatPrice(item.unitPrice))} x ${item.quantity}</div>
                             ${optsText}
                         </div>
-                        <div style="font-weight:700; color: var(--color-text-price);">${translations.currencySymbol}${item.total.toFixed(2)}</div>
+                        <div style="font-weight:700; color: var(--color-text-price);">${escapeHtml(formatPrice(item.total))}</div>
                     </div>
                 `;
                 grandTotal += item.total;
@@ -1578,7 +1597,7 @@
             html += `
                 <div class="order-item" style="border: 2px solid var(--color-card-border-hover); background: var(--color-page-bg-2);">
                     <div style="font-weight:700; color: var(--color-text-primary); font-size:1.125rem;">${translations.totalLabel}</div>
-                    <div style="font-weight:700; color: var(--color-text-price); font-size:1.25rem;">${translations.currencySymbol}${grandTotal.toFixed(2)}</div>
+                    <div style="font-weight:700; color: var(--color-text-price); font-size:1.25rem;">${escapeHtml(formatPrice(grandTotal))}</div>
                 </div>
             `;
 
@@ -1608,14 +1627,14 @@
             let grandTotal = 0;
             const cart = window.__menuCart;
             Object.values(cart).forEach(item => {
-                message += `• ${item.name} x${item.quantity} - ${translations.currencySymbol}${item.total.toFixed(2)}\n`;
+                message += `• ${item.name} x${item.quantity} - ${formatPrice(item.total)}\n`;
                 item.options.forEach(o => {
-                    message += `    ↳ ${o.group}: ${o.name}${o.delta ? ` (${o.delta > 0 ? '+' : '−'}${translations.currencySymbol}${Math.abs(o.delta).toFixed(2)})` : ''}\n`;
+                    message += `    ↳ ${o.group}: ${o.name}${o.delta ? ` (${formatPriceDelta(o.delta)})` : ''}\n`;
                 });
                 grandTotal += item.total;
             });
 
-            message += `\n${translations.total.replace(':total', translations.currencySymbol + grandTotal.toFixed(2))}\n\n`;
+            message += `\n${translations.total.replace(':total', formatPrice(grandTotal))}\n\n`;
             message += `${translations.deliveryLocation}\n${location}\n\n`;
             if (notes.trim()) {
                 message += `${translations.additionalNotesLabel}\n${notes}\n\n`;

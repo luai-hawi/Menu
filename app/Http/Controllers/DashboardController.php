@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Admin\AdminDashboardService;
+use App\Services\Currency;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
 
@@ -34,7 +35,10 @@ class DashboardController extends Controller
 
             $videoAvailable = $videoService->available();
 
-            return view('restaurant.dashboard', compact('restaurant', 'categories', 'restaurants', 'videoAvailable'));
+            return view('restaurant.dashboard', array_merge(
+                compact('restaurant', 'categories', 'restaurants', 'videoAvailable'),
+                ['currencies' => app(Currency::class)->options()],
+            ));
         }
 
         return view('dashboard', ['ownerWithoutRestaurants' => false]);

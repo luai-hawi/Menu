@@ -42,6 +42,8 @@ class MenuController extends Controller
                 'twitter_url',
                 'tiktok_url',
                 'theme_colors',
+                'currency',
+                'currency_position',
             ])
             ->where('slug', $slug)
             ->where('is_active', true)
