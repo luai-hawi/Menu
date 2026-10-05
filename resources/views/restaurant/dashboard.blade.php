@@ -603,6 +603,39 @@
                     </form>
                 </div>
 
+                {{-- Default menu language --}}
+                <div class="dash-card dash-card-wide"
+                    x-data="languagePicker(@js($restaurant->defaultLanguage()), @js($languages), @js($languageLabels))">
+                    <header class="dash-card-header">
+                        <div class="dash-card-icon dash-icon-blue"><i class="fas fa-globe"></i></div>
+                        <h3>{{ __('messages.defaultLanguage.title') }}</h3>
+                    </header>
+                    <form action="{{ route('restaurant.update.settings') }}" method="POST" data-ajax
+                        data-ajax-reload>
+                        @csrf
+                        <div class="dash-field">
+                            <label class="dash-label" for="default_language">{{ __('messages.defaultLanguage.label') }}</label>
+                            <select id="default_language" name="default_language" class="dash-input"
+                                x-model="code" required>
+                                @foreach ($languages as $languageCode)
+                                    <option value="{{ $languageCode }}">{{ $languageLabels[$languageCode] }}</option>
+                                @endforeach
+                            </select>
+                            <small class="dash-help">{{ __('messages.defaultLanguage.help') }}</small>
+                        </div>
+                        <p class="dash-currency-preview" role="status">
+                            <span>{{ __('messages.defaultLanguage.preview') }}</span>
+                            <strong x-text="current"></strong>
+                            <span class="dash-language-preview-dir" x-text="direction === 'rtl' ? 'RTL ←' : 'LTR →'"
+                                dir="ltr"></span>
+                        </p>
+                        <button type="submit" class="dash-btn dash-btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>{{ __('messages.defaultLanguage.save') }}</span>
+                        </button>
+                    </form>
+                </div>
+
                 {{-- Social links --}}
                 <div class="dash-card dash-card-wide">
                     <header class="dash-card-header">
@@ -1553,6 +1586,30 @@
                 },
             };
         }
+
+        /**
+         * Shows which language first-time customers will land on, so the owner
+         * can confirm the pick before saving. `code` is already the resolved
+         * default, so a restaurant that never chose previews exactly what the
+         * public menu renders today.
+         */
+        function languagePicker(code, languages, labels) {
+            const SUPPORTED = languages && languages.length ? languages : ['ar', 'en'];
+
+            return {
+                code: code,
+                languages: SUPPORTED,
+                labels: labels || {},
+
+                get current() {
+                    return this.labels[this.code] ?? this.code;
+                },
+
+                get direction() {
+                    return this.code === 'ar' ? 'rtl' : 'ltr';
+                },
+            };
+        }
     </script>
 
     <style>
@@ -1835,6 +1892,12 @@
 
         .dash-currency-preview .dash-currency-preview-delta {
             color: #86efac;
+        }
+
+        .dash-language-preview-dir {
+            color: #64748b;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
         }
 
         .dash-help {

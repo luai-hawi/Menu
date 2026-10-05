@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Admin\AdminDashboardService;
 use App\Services\Currency;
+use App\Services\Language;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
 
@@ -37,7 +38,11 @@ class DashboardController extends Controller
 
             return view('restaurant.dashboard', array_merge(
                 compact('restaurant', 'categories', 'restaurants', 'videoAvailable'),
-                ['currencies' => app(Currency::class)->options()],
+                [
+                    'currencies' => app(Currency::class)->options(),
+                    'languages' => app(Language::class)->supported(),
+                    'languageLabels' => app(Language::class)->labels(),
+                ],
             ));
         }
 

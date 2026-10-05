@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 @php
     $menuLocale = app()->getLocale();
-    $menuDir    = $menuLocale === 'ar' ? 'rtl' : 'ltr';
+    $menuDir    = app(\App\Services\Language::class)->direction($menuLocale);
 @endphp
 <html lang="{{ $menuLocale }}" dir="{{ $menuDir }}" class="dark">
 <head>

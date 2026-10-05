@@ -9,6 +9,7 @@ use App\Models\MenuItemOptionGroup;
 use App\Models\Restaurant;
 use App\Services\Currency;
 use App\Services\ImageService;
+use App\Services\Language;
 use App\Services\VideoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -113,7 +114,11 @@ class RestaurantController extends Controller
 
         return view('restaurant.dashboard', array_merge(
             compact('restaurant', 'categories', 'restaurants', 'videoAvailable'),
-            ['currencies' => app(Currency::class)->options()],
+            [
+                'currencies' => app(Currency::class)->options(),
+                'languages' => app(Language::class)->supported(),
+                'languageLabels' => app(Language::class)->labels(),
+            ],
         ));
     }
 
@@ -593,6 +598,7 @@ class RestaurantController extends Controller
             'tiktok_url' => 'nullable|url',
             'currency' => ['nullable', Rule::in(app(Currency::class)->codes())],
             'currency_position' => ['nullable', Rule::in(['before', 'after'])],
+            'default_language' => ['nullable', Rule::in(app(Language::class)->supported())],
             // ── New comprehensive color tokens ──
             'page_bg' => $colorRule,
             'page_bg_2' => $colorRule,
@@ -702,7 +708,7 @@ class RestaurantController extends Controller
         ];
         foreach (['facebook_url', 'instagram_url', 'snapchat_url', 'whatsapp_url', 'twitter_url', 'tiktok_url',
             'welcome_title', 'welcome_title_en', 'welcome_message', 'welcome_message_en',
-            'currency', 'currency_position'] as $field) {
+            'currency', 'currency_position', 'default_language'] as $field) {
             if ($request->exists($field)) {
                 $updateData[$field] = $request->input($field);
             }

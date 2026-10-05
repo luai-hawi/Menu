@@ -488,6 +488,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default Menu Language
+    |--------------------------------------------------------------------------
+    | The language a customer sees the first time they open the menu, before
+    | they have picked one themselves.
+    */
+    'defaultLanguage' => [
+        'title' => 'Default Menu Language',
+        'label' => 'Default language',
+        'help' => 'The language customers see the first time they open your menu. They can still switch at any time.',
+        'preview' => 'First-time customers see:',
+        'save' => 'Save default language',
+    ],
+
     // ─────────────────────────────────────────────
     //  THEME COLOR CONTROLS
     // ─────────────────────────────────────────────

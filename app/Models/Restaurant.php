@@ -5,6 +5,7 @@
 namespace App\Models;
 
 use App\Services\Currency;
+use App\Services\Language;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -38,6 +39,7 @@ class Restaurant extends Model
         'theme_colors',
         'currency',
         'currency_position',
+        'default_language',
     ];
 
     protected $casts = [
@@ -89,6 +91,16 @@ class Restaurant extends Model
     public function formatPrice(mixed $amount): string
     {
         return app(Currency::class)->format($amount, $this->currencyCode(), $this->currency_position);
+    }
+
+    /**
+     * Language a customer sees the first time they open this menu, i.e. with
+     * no `?lang=` query and no saved preference. Owners who never chose one
+     * fall back to the app locale rather than being pinned to a guess.
+     */
+    public function defaultLanguage(): string
+    {
+        return app(Language::class)->resolve($this->default_language);
     }
 
     public function user()
